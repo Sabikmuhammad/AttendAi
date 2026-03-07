@@ -1,0 +1,33 @@
+# Dependencies
+/node_modules
+/.next/
+/out/
+/build
+
+# Environment variables
+.env*.local
+.env
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Python
+ai-service/__pycache__/
+ai-service/*.pyc
+ai-service/venv/
+ai-service/.venv/
+ai-service/.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
