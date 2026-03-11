@@ -1,11 +1,11 @@
 /**
- * Root Layout — wraps entire app with Clerk authentication provider.
- * Sets up global fonts, metadata, and the Toaster notification component.
+ * Root Layout — wraps entire app
+ * Includes NextAuth SessionProvider for authentication
  */
 
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
+import { Providers } from "@/components/providers";
 import "./globals.css";
 
 const inter = Inter({
@@ -43,12 +43,12 @@ export default function RootLayout({
     children: React.ReactNode;
 }) {
     return (
-        <ClerkProvider>
-            <html lang="en" suppressHydrationWarning>
-                <body className={`${inter.variable} font-sans antialiased`}>
+        <html lang="en" className="dark" suppressHydrationWarning data-scroll-behavior="smooth">
+            <body className={`${inter.variable} font-sans antialiased`}>
+                <Providers>
                     {children}
-                </body>
-            </html>
-        </ClerkProvider>
+                </Providers>
+            </body>
+        </html>
     );
 }

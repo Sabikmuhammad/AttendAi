@@ -51,19 +51,6 @@ const config: Config = {
                     DEFAULT: "hsl(var(--card))",
                     foreground: "hsl(var(--card-foreground))",
                 },
-                brand: {
-                    50: "hsl(220, 100%, 97%)",
-                    100: "hsl(220, 100%, 93%)",
-                    200: "hsl(220, 100%, 85%)",
-                    300: "hsl(220, 96%, 75%)",
-                    400: "hsl(220, 94%, 65%)",
-                    500: "hsl(220, 90%, 56%)",
-                    600: "hsl(220, 85%, 48%)",
-                    700: "hsl(220, 80%, 40%)",
-                    800: "hsl(220, 74%, 32%)",
-                    900: "hsl(220, 68%, 26%)",
-                    950: "hsl(220, 62%, 18%)",
-                },
             },
             borderRadius: {
                 lg: "var(--radius)",
@@ -71,8 +58,8 @@ const config: Config = {
                 sm: "calc(var(--radius) - 4px)",
             },
             fontFamily: {
-                sans: ["var(--font-inter)", "system-ui", "sans-serif"],
-                mono: ["var(--font-mono)", "monospace"],
+                sans: ["var(--font-geist-sans)", "Inter", "system-ui", "sans-serif"],
+                mono: ["var(--font-geist-mono)", "monospace"],
             },
             keyframes: {
                 "accordion-down": {
@@ -115,6 +102,11 @@ const config: Config = {
                     "0%, 100%": { boxShadow: "0 0 20px rgba(59, 130, 246, 0.3)" },
                     "50%": { boxShadow: "0 0 40px rgba(59, 130, 246, 0.6)" },
                 },
+                blob: {
+                    "0%, 100%": { transform: "translate(0, 0) scale(1)" },
+                    "33%": { transform: "translate(30px, -50px) scale(1.1)" },
+                    "66%": { transform: "translate(-20px, 20px) scale(0.9)" },
+                },
             },
             animation: {
                 "accordion-down": "accordion-down 0.2s ease-out",
@@ -127,6 +119,11 @@ const config: Config = {
                 pulse: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
                 float: "float 3s ease-in-out infinite",
                 glow: "glow 2s ease-in-out infinite",
+                blob: "blob 7s ease-in-out infinite",
+            },
+            animationDelay: {
+                '2000': '2s',
+                '4000': '4s',
             },
             backgroundImage: {
                 "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",

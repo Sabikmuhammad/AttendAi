@@ -1,83 +1,102 @@
-/**
- * API Route: /api/classes
- * GET  — fetch all classes for the authenticated faculty
- * POST — create a new class session
- */
+import { NextRequest, NextResponse } from 'next/server';
+import { connectDB } from '@/lib/mongodb';
+import Class from '@/models/Class';
 
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { connectDB } from "@/lib/db";
-import Class from "@/models/Class";
-import Faculty from "@/models/Faculty";
-
-// GET /api/classes — returns all classes for the logged-in faculty
+// GET all classes
 export async function GET(req: NextRequest) {
-    try {
-        const { userId } = await auth();
-        if (!userId) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+  try {
+    await connectDB();
 
-        await connectDB();
+    const { searchParams } = new URL(req.url);
+    const status = searchParams.get('status');
+    const department = searchParams.get('department');
 
-        // Find the faculty record for this Clerk user
-        const faculty = await Faculty.findOne({ clerkUserId: userId });
-        if (!faculty) {
-            return NextResponse.json({ error: "Faculty profile not found" }, { status: 404 });
-        }
+    const filter: any = {};
+    if (status) filter.status = status;
+    if (department) filter.department = department;
 
-        const classes = await Class.find({ facultyId: faculty._id })
-            .populate("studentIds", "name registerNumber department")
-            .sort({ createdAt: -1 })
-            .lean();
+    const classes = await Class.find(filter)
+      .sort({ startTime: -1 })
+      .populate('studentIds', 'name registerNumber')
+      .lean();
 
-        return NextResponse.json({ classes }, { status: 200 });
-    } catch (error) {
-        console.error("[GET /api/classes]", error);
-        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-    }
+    return NextResponse.json({ success: true, classes });
+  } catch (error) {
+    console.error('Error fetching classes:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch classes' },
+      { status: 500 }
+    );
+  }
 }
 
-// POST /api/classes — create a new class
+// POST create new class
 export async function POST(req: NextRequest) {
-    try {
-        const { userId } = await auth();
-        if (!userId) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+  try {
+    await connectDB();
 
-        await connectDB();
+    const body = await req.json();
+    const {
+      courseName,
+      courseCode,
+      classroomNumber,
+      facultyId,
+      facultyName,
+      department,
+      startTime,
+      endTime,
+      studentIds,
+    } = body;
 
-        const faculty = await Faculty.findOne({ clerkUserId: userId });
-        if (!faculty) {
-            return NextResponse.json({ error: "Faculty profile not found" }, { status: 404 });
-        }
-
-        const body = await req.json();
-        const { courseName, courseCode, classroomNumber, startTime, endTime, studentIds } = body;
-
-        // Validate required fields
-        if (!courseName || !courseCode || !classroomNumber || !startTime || !endTime) {
-            return NextResponse.json(
-                { error: "Missing required fields: courseName, courseCode, classroomNumber, startTime, endTime" },
-                { status: 400 }
-            );
-        }
-
-        const newClass = await Class.create({
-            courseName,
-            courseCode,
-            classroomNumber,
-            startTime: new Date(startTime),
-            endTime: new Date(endTime),
-            facultyId: faculty._id,
-            studentIds: studentIds ?? [],
-            isActive: false,
-        });
-
-        return NextResponse.json({ class: newClass }, { status: 201 });
-    } catch (error) {
-        console.error("[POST /api/classes]", error);
-        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    // Validate required fields
+    if (
+      !courseName ||
+      !classroomNumber ||
+      !facultyId ||
+      !facultyName ||
+      !department ||
+      !startTime ||
+      !endTime ||
+      !studentIds ||
+      studentIds.length === 0
+    ) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
     }
+
+    // Validate time
+    if (new Date(endTime) <= new Date(startTime)) {
+      return NextResponse.json(
+        { error: 'End time must be after start time' },
+        { status: 400 }
+      );
+    }
+
+    const newClass = await Class.create({
+      courseName,
+      courseCode,
+      classroomNumber,
+      facultyId,
+      facultyName,
+      department,
+      startTime: new Date(startTime),
+      endTime: new Date(endTime),
+      studentIds,
+      status: 'scheduled',
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Class created successfully',
+      class: newClass,
+    });
+  } catch (error) {
+    console.error('Error creating class:', error);
+    return NextResponse.json(
+      { error: 'Failed to create class' },
+      { status: 500 }
+    );
+  }
 }

@@ -1,365 +1,216 @@
-"use client";
+import { connectDB } from '@/lib/mongodb';
+import Student from '@/models/Student';
+import Class from '@/models/Class';
+import Attendance from '@/models/Attendance';
+import { Card } from '@/components/ui/card';
+import { Users, BookOpen, TrendingUp, Activity } from 'lucide-react';
 
-/**
- * Admin Dashboard — manage students, faculty, and view system analytics.
- */
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
 
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+export default async function AdminDashboard() {
+  // Authentication disabled - no auth checks
 
-interface Student {
-    _id: string;
-    name: string;
-    registerNumber: string;
-    department: string;
-    year: number;
-    section: string;
-    email: string;
-}
+  // Connect to database and fetch stats
+  await connectDB();
 
-interface NewStudentForm {
-    name: string;
-    registerNumber: string;
-    email: string;
-    department: string;
-    year: string;
-    section: string;
-}
+  const [totalStudents, totalClasses, todayClasses, attendanceRecords] = await Promise.all([
+    Student.countDocuments(),
+    Class.countDocuments(),
+    Class.countDocuments({
+      startTime: {
+        $gte: new Date(new Date().setHours(0, 0, 0, 0)),
+        $lt: new Date(new Date().setHours(23, 59, 59, 999)),
+      },
+    }),
+    Attendance.countDocuments(),
+  ]);
 
-type ActiveTab = "students" | "faculty" | "analytics";
+  // Calculate attendance percentage properly
+  // Get total expected attendance (sum of enrolled students per class)
+  const allClasses = await Class.find().select('studentIds').lean();
+  const totalExpectedAttendance = allClasses.reduce((sum, cls) => sum + (cls.studentIds?.length || 0), 0);
+  
+  const attendancePercentage = totalExpectedAttendance > 0
+    ? ((attendanceRecords / totalExpectedAttendance) * 100).toFixed(1)
+    : '0.0';
 
-export default function AdminDashboard() {
-    const [activeTab, setActiveTab] = useState<ActiveTab>("students");
-    const [students, setStudents] = useState<Student[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [showAddForm, setShowAddForm] = useState(false);
-    const [newStudent, setNewStudent] = useState<NewStudentForm>({
-        name: "", registerNumber: "", email: "", department: "", year: "1", section: "A",
-    });
-    const [addingStudent, setAddingStudent] = useState(false);
-    const [formError, setFormError] = useState("");
+  // Get recent classes
+  const recentClasses = await Class.find()
+    .sort({ createdAt: -1 })
+    .limit(5)
+    .populate('studentIds', 'name registerNumber')
+    .lean();
 
-    useEffect(() => {
-        fetch("/api/students")
-            .then((r) => r.json())
-            .then((d) => setStudents(d.students ?? []))
-            .catch(console.error)
-            .finally(() => setLoading(false));
-    }, []);
+  // Get active classes today
+  const activeClasses = await Class.find({
+    startTime: {
+      $gte: new Date(new Date().setHours(0, 0, 0, 0)),
+      $lt: new Date(new Date().setHours(23, 59, 59, 999)),
+    },
+    status: 'active',
+  }).lean();
 
-    const filteredStudents = students.filter((s) => {
-        const q = searchQuery.toLowerCase();
-        return (
-            s.name.toLowerCase().includes(q) ||
-            s.registerNumber.toLowerCase().includes(q) ||
-            s.department.toLowerCase().includes(q)
-        );
-    });
+  return (
+    <div className="space-y-6">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard
+          title="Total Students"
+          value={totalStudents}
+          icon={Users}
+          color="blue"
+        />
+        <StatCard
+          title="Active Classes Today"
+          value={todayClasses}
+          icon={BookOpen}
+          color="purple"
+        />
+        <StatCard
+          title="Attendance Rate"
+          value={`${attendancePercentage}%`}
+          icon={TrendingUp}
+          color="green"
+        />
+        <StatCard
+          title="Total Attendance Records"
+          value={attendanceRecords}
+          icon={Activity}
+          color="orange"
+        />
+      </div>
 
-    const handleAddStudent = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setFormError("");
-        setAddingStudent(true);
-
-        try {
-            const res = await fetch("/api/students", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ...newStudent, year: parseInt(newStudent.year) }),
-            });
-
-            const data = await res.json();
-            if (!res.ok) {
-                setFormError(data.error ?? "Failed to add student");
-                return;
-            }
-
-            setStudents((prev) => [...prev, data.student]);
-            setShowAddForm(false);
-            setNewStudent({ name: "", registerNumber: "", email: "", department: "", year: "1", section: "A" });
-        } catch {
-            setFormError("Network error. Please try again.");
-        } finally {
-            setAddingStudent(false);
-        }
-    };
-
-    const departments = [...new Set(students.map((s) => s.department))];
-
-    return (
-        <div className="min-h-screen bg-slate-950 p-8">
-            <div className="max-w-7xl mx-auto">
-                {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-black text-white mb-2">Admin Dashboard</h1>
-                    <p className="text-slate-400">Manage students, faculty, and view system analytics.</p>
+      {/* Active Classes */}
+      {activeClasses.length > 0 && (
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Active Classes</h2>
+          <div className="space-y-3">
+            {activeClasses.map((cls: any) => (
+              <div
+                key={cls._id.toString()}
+                className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200/50 hover:border-green-300 transition-colors"
+              >
+                <div>
+                  <h3 className="font-semibold text-gray-900">{cls.courseName}</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {cls.classroomNumber} • {cls.facultyName}
+                  </p>
                 </div>
+                <span className="px-4 py-1.5 bg-green-500 text-white text-xs font-semibold rounded-full shadow-sm flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                  LIVE
+                </span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
-                {/* Stats row */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                    {[
-                        { label: "Total Students", value: students.length, icon: "🎓", gradient: "from-blue-600/10 to-blue-700/5" },
-                        { label: "Departments", value: departments.length, icon: "🏛️", gradient: "from-violet-600/10 to-violet-700/5" },
-                        { label: "System Status", value: "Online", icon: "✅", gradient: "from-emerald-600/10 to-emerald-700/5" },
-                    ].map((stat) => (
-                        <div key={stat.label} className={`p-6 rounded-2xl border border-white/10 bg-gradient-to-br ${stat.gradient}`}>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-slate-400 mb-1">{stat.label}</p>
-                                    <p className="text-3xl font-black text-white">{stat.value}</p>
-                                </div>
-                                <span className="text-3xl">{stat.icon}</span>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                {/* Tabs */}
-                <div className="flex gap-2 mb-6 p-1 rounded-xl bg-white/[0.03] border border-white/10 w-fit">
-                    {(["students", "faculty", "analytics"] as const).map((tab) => (
-                        <button
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            className={`px-5 py-2 rounded-lg text-sm font-medium transition-all capitalize ${activeTab === tab
-                                    ? "bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-lg shadow-blue-500/20"
-                                    : "text-slate-400 hover:text-white"
-                                }`}
-                        >
-                            {tab}
-                        </button>
-                    ))}
-                </div>
-
-                {/* ── Students Tab ── */}
-                {activeTab === "students" && (
-                    <Card className="bg-slate-900/40 border-white/10">
-                        <CardHeader className="border-b border-white/10">
-                            <div className="flex items-center justify-between gap-4">
-                                <CardTitle className="text-white text-base">Student Management</CardTitle>
-                                <div className="flex items-center gap-3">
-                                    <Input
-                                        placeholder="Search students…"
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="w-56 bg-slate-800/50 border-white/10 text-white placeholder:text-slate-600"
-                                    />
-                                    <Button
-                                        variant="gradient"
-                                        size="sm"
-                                        onClick={() => setShowAddForm(!showAddForm)}
-                                    >
-                                        + Add Student
-                                    </Button>
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="pt-4">
-                            {/* Add student form */}
-                            {showAddForm && (
-                                <form
-                                    onSubmit={handleAddStudent}
-                                    className="mb-6 p-5 rounded-2xl border border-blue-500/20 bg-blue-500/5 space-y-4"
-                                >
-                                    <h3 className="font-semibold text-white text-sm mb-3">Add New Student</h3>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <Label className="text-slate-400 text-xs mb-1 block">Full Name *</Label>
-                                            <Input
-                                                placeholder="e.g. Priya Sharma"
-                                                value={newStudent.name}
-                                                onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
-                                                required
-                                                className="bg-slate-800/50 border-white/10 text-white placeholder:text-slate-600"
-                                            />
-                                        </div>
-                                        <div>
-                                            <Label className="text-slate-400 text-xs mb-1 block">Register Number *</Label>
-                                            <Input
-                                                placeholder="e.g. 21CSR001"
-                                                value={newStudent.registerNumber}
-                                                onChange={(e) => setNewStudent({ ...newStudent, registerNumber: e.target.value })}
-                                                required
-                                                className="bg-slate-800/50 border-white/10 text-white placeholder:text-slate-600"
-                                            />
-                                        </div>
-                                        <div>
-                                            <Label className="text-slate-400 text-xs mb-1 block">Email *</Label>
-                                            <Input
-                                                type="email"
-                                                placeholder="student@college.edu"
-                                                value={newStudent.email}
-                                                onChange={(e) => setNewStudent({ ...newStudent, email: e.target.value })}
-                                                required
-                                                className="bg-slate-800/50 border-white/10 text-white placeholder:text-slate-600"
-                                            />
-                                        </div>
-                                        <div>
-                                            <Label className="text-slate-400 text-xs mb-1 block">Department *</Label>
-                                            <Input
-                                                placeholder="e.g. Computer Science"
-                                                value={newStudent.department}
-                                                onChange={(e) => setNewStudent({ ...newStudent, department: e.target.value })}
-                                                required
-                                                className="bg-slate-800/50 border-white/10 text-white placeholder:text-slate-600"
-                                            />
-                                        </div>
-                                        <div>
-                                            <Label className="text-slate-400 text-xs mb-1 block">Year</Label>
-                                            <Input
-                                                type="number"
-                                                min="1"
-                                                max="5"
-                                                value={newStudent.year}
-                                                onChange={(e) => setNewStudent({ ...newStudent, year: e.target.value })}
-                                                className="bg-slate-800/50 border-white/10 text-white"
-                                            />
-                                        </div>
-                                        <div>
-                                            <Label className="text-slate-400 text-xs mb-1 block">Section</Label>
-                                            <Input
-                                                placeholder="A"
-                                                value={newStudent.section}
-                                                onChange={(e) => setNewStudent({ ...newStudent, section: e.target.value })}
-                                                className="bg-slate-800/50 border-white/10 text-white"
-                                            />
-                                        </div>
-                                    </div>
-                                    {formError && (
-                                        <p className="text-red-400 text-sm">{formError}</p>
-                                    )}
-                                    <div className="flex gap-3">
-                                        <Button type="submit" variant="gradient" size="sm" disabled={addingStudent}>
-                                            {addingStudent ? "Adding…" : "Add Student"}
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => setShowAddForm(false)}
-                                            className="text-slate-400"
-                                        >
-                                            Cancel
-                                        </Button>
-                                    </div>
-                                </form>
-                            )}
-
-                            {/* Students table */}
-                            {loading ? (
-                                <div className="space-y-3">
-                                    {[1, 2, 3].map((i) => <div key={i} className="h-14 rounded-xl shimmer" />)}
-                                </div>
-                            ) : filteredStudents.length === 0 ? (
-                                <div className="text-center py-16">
-                                    <p className="text-slate-400">No students found</p>
-                                </div>
-                            ) : (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm attendance-table">
-                                        <thead>
-                                            <tr>
-                                                <th className="text-left p-3 rounded-l-xl">Name</th>
-                                                <th className="text-left p-3">Register No.</th>
-                                                <th className="text-left p-3">Department</th>
-                                                <th className="text-left p-3">Year / Sec</th>
-                                                <th className="text-left p-3 rounded-r-xl">Face Data</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-white/[0.05]">
-                                            {filteredStudents.map((student) => (
-                                                <tr key={student._id} className="hover:bg-white/[0.02] transition-colors">
-                                                    <td className="p-3 font-medium text-white">{student.name}</td>
-                                                    <td className="p-3 text-slate-400 font-mono">{student.registerNumber}</td>
-                                                    <td className="p-3 text-slate-400">{student.department}</td>
-                                                    <td className="p-3 text-slate-400">Y{student.year}{student.section}</td>
-                                                    <td className="p-3">
-                                                        <Badge variant="warning" className="text-xs">No face data</Badge>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                )}
-
-                {/* ── Faculty Tab ── */}
-                {activeTab === "faculty" && (
-                    <Card className="bg-slate-900/40 border-white/10">
-                        <CardHeader className="border-b border-white/10">
-                            <CardTitle className="text-white text-base">Faculty Management</CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-6 text-center py-16">
-                            <div className="text-5xl mb-4">👨‍🏫</div>
-                            <p className="text-slate-400">Faculty records are managed through the onboarding flow.</p>
-                            <p className="text-slate-600 text-sm mt-2">Faculty register via Clerk and create their profile on first login.</p>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {/* ── Analytics Tab ── */}
-                {activeTab === "analytics" && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <Card className="bg-slate-900/40 border-white/10">
-                            <CardHeader>
-                                <CardTitle className="text-white text-base">Department Distribution</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-3">
-                                    {departments.map((dept) => {
-                                        const count = students.filter((s) => s.department === dept).length;
-                                        const pct = Math.round((count / students.length) * 100);
-                                        return (
-                                            <div key={dept}>
-                                                <div className="flex justify-between text-sm mb-1">
-                                                    <span className="text-slate-300">{dept}</span>
-                                                    <span className="text-slate-500">{count} students</span>
-                                                </div>
-                                                <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
-                                                    <div
-                                                        className="h-full rounded-full bg-gradient-to-r from-blue-500 to-violet-500"
-                                                        style={{ width: `${pct}%` }}
-                                                    />
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                    {departments.length === 0 && (
-                                        <p className="text-slate-500 text-sm text-center py-4">No data available</p>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-                        <Card className="bg-slate-900/40 border-white/10">
-                            <CardHeader>
-                                <CardTitle className="text-white text-base">System Info</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-3">
-                                    {[
-                                        { label: "AI Service URL", value: process.env.NEXT_PUBLIC_AI_SERVICE_URL ?? "http://localhost:8000" },
-                                        { label: "Database", value: "MongoDB Atlas" },
-                                        { label: "Auth Provider", value: "Clerk" },
-                                        { label: "Framework", value: "Next.js 14 + FastAPI" },
-                                    ].map((item) => (
-                                        <div key={item.label} className="flex justify-between py-2 border-b border-white/[0.05]">
-                                            <span className="text-slate-400 text-sm">{item.label}</span>
-                                            <span className="text-white text-sm font-mono">{item.value}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-                )}
-            </div>
+      {/* Recent Classes */}
+      <Card className="p-6">
+        <h2 className="text-xl font-semibold mb-4">Recent Classes</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="border-b border-gray-200">
+              <tr>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
+                  Course
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
+                  Classroom
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
+                  Faculty
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
+                  Start Time
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
+                  Status
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {recentClasses.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-8 text-gray-500">
+                    No classes found
+                  </td>
+                </tr>
+              ) : (
+                recentClasses.map((cls: any) => (
+                  <tr key={cls._id.toString()} className="hover:bg-gray-50">
+                    <td className="py-3 px-4 text-sm text-gray-900">
+                      {cls.courseName}
+                    </td>
+                    <td className="py-3 px-4 text-sm text-gray-600">
+                      {cls.classroomNumber}
+                    </td>
+                    <td className="py-3 px-4 text-sm text-gray-600">
+                      {cls.facultyName}
+                    </td>
+                    <td className="py-3 px-4 text-sm text-gray-600">
+                      {new Date(cls.startTime).toLocaleString()}
+                    </td>
+                    <td className="py-3 px-4">
+                      <StatusBadge status={cls.status} />
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-    );
+      </Card>
+    </div>
+  );
+}
+
+function StatCard({
+  title,
+  value,
+  icon: Icon,
+  color,
+}: {
+  title: string;
+  value: string | number;
+  icon: any;
+  color: 'blue' | 'purple' | 'green' | 'orange';
+}) {
+  const colorClasses = {
+    blue: 'bg-blue-500/10 text-blue-600',
+    purple: 'bg-purple-500/10 text-purple-600',
+    green: 'bg-green-500/10 text-green-600',
+    orange: 'bg-orange-500/10 text-orange-600',
+  };
+
+  return (
+    <Card className="p-6 hover:shadow-md transition-shadow duration-200">
+      <div className="flex items-center justify-between">
+        <div className="flex-1">
+          <p className="text-sm font-medium text-gray-600 mb-2">{title}</p>
+          <p className="text-3xl font-bold text-gray-900">{value}</p>
+        </div>
+        <div className={`${colorClasses[color]} p-4 rounded-xl`}>
+          <Icon className="w-6 h-6" />
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const styles: Record<string, string> = {
+    scheduled: 'bg-blue-100 text-blue-700',
+    active: 'bg-green-100 text-green-700',
+    completed: 'bg-gray-100 text-gray-700',
+    cancelled: 'bg-red-100 text-red-700',
+  };
+
+  return (
+    <span className={`px-3 py-1 rounded-full text-xs font-medium ${styles[status] || styles.scheduled}`}>
+      {status.toUpperCase()}
+    </span>
+  );
 }

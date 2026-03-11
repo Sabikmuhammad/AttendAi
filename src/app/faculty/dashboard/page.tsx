@@ -1,188 +1,271 @@
-"use client";
+'use client';
 
-/**
- * Faculty Dashboard — shows active classes, recent attendance stats, and quick actions.
- * Client component for real-time data fetching with React state.
- */
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Clock,
+  MapPin,
+  Users,
+  Calendar,
+  Eye,
+} from 'lucide-react';
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-
-interface ClassItem {
-    _id: string;
-    courseName: string;
-    courseCode: string;
-    classroomNumber: string;
-    startTime: string;
-    endTime: string;
-    isActive: boolean;
-    studentIds: Array<{ name: string; registerNumber: string }>;
+interface Class {
+  _id: string;
+  courseName: string;
+  courseCode?: string;
+  section?: string;
+  classroomNumber: string;
+  facultyName: string;
+  startTime: string;
+  endTime: string;
+  status: 'scheduled' | 'active' | 'completed' | 'cancelled';
+  studentIds: any[];
 }
-
-// ─── Stat Card ────────────────────────────────────────────────────────────────
-
-function StatCard({
-    label,
-    value,
-    icon,
-    gradient,
-}: {
-    label: string;
-    value: number | string;
-    icon: string;
-    gradient: string;
-}) {
-    return (
-        <div className={`p-6 rounded-2xl border border-white/10 bg-gradient-to-br ${gradient} card-hover`}>
-            <div className="flex items-start justify-between">
-                <div>
-                    <p className="text-sm text-slate-400 mb-1">{label}</p>
-                    <p className="text-3xl font-black text-white">{value}</p>
-                </div>
-                <span className="text-3xl">{icon}</span>
-            </div>
-        </div>
-    );
-}
-
-// ─── Class Row ────────────────────────────────────────────────────────────────
-
-function ClassRow({ cls }: { cls: ClassItem }) {
-    const start = new Date(cls.startTime).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-    });
-    const end = new Date(cls.endTime).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-    });
-    const date = new Date(cls.startTime).toLocaleDateString([], {
-        month: "short",
-        day: "numeric",
-    });
-
-    return (
-        <div className="flex items-center justify-between p-4 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition-colors group">
-            <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-violet-500/20 flex items-center justify-center border border-blue-500/20">
-                    <span className="text-blue-400 font-mono font-bold text-xs">{cls.courseCode.slice(0, 2)}</span>
-                </div>
-                <div>
-                    <p className="font-semibold text-white text-sm">{cls.courseName}</p>
-                    <p className="text-xs text-slate-500">
-                        Room {cls.classroomNumber} · {date} · {start}–{end}
-                    </p>
-                </div>
-            </div>
-            <div className="flex items-center gap-3">
-                <span className="text-xs text-slate-500">{cls.studentIds?.length ?? 0} students</span>
-                {cls.isActive ? (
-                    <Badge variant="success" className="animate-pulse">
-                        ● LIVE
-                    </Badge>
-                ) : (
-                    <Badge variant="secondary">Scheduled</Badge>
-                )}
-                <Link href={`/faculty/live-class?classId=${cls._id}`}>
-                    <Button size="sm" variant={cls.isActive ? "gradient" : "outline"} className="border-white/20 text-white hover:bg-white/10 text-xs">
-                        {cls.isActive ? "Join Live" : "Start Class"}
-                    </Button>
-                </Link>
-            </div>
-        </div>
-    );
-}
-
-// ─── Main Dashboard ───────────────────────────────────────────────────────────
 
 export default function FacultyDashboard() {
-    const [classes, setClasses] = useState<ClassItem[]>([]);
-    const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<'all' | 'scheduled' | 'active' | 'completed'>('all');
 
-    useEffect(() => {
-        fetch("/api/classes")
-            .then((res) => res.json())
-            .then((data) => {
-                setClasses(data.classes ?? []);
-            })
-            .catch(console.error)
-            .finally(() => setLoading(false));
-    }, []);
+  useEffect(() => {
+    fetchClasses();
+    
+    // Auto-refresh every 30 seconds to check for class activation
+    const interval = setInterval(fetchClasses, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
-    const totalStudents = classes.reduce((sum, c) => sum + (c.studentIds?.length ?? 0), 0);
-    const activeClasses = classes.filter((c) => c.isActive).length;
-    const todayClasses = classes.filter((c) => {
-        const d = new Date(c.startTime);
-        const today = new Date();
-        return d.toDateString() === today.toDateString();
-    }).length;
+  const fetchClasses = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/faculty/classes');
+      const data = await response.json();
+      
+      if (data.success) {
+        setClasses(data.classes);
+      }
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    return (
-        <div className="p-8 min-h-screen">
-            {/* Header */}
-            <div className="mb-10">
-                <h1 className="text-3xl font-black text-white mb-2">Faculty Dashboard</h1>
-                <p className="text-slate-400">
-                    Manage your classes and monitor attendance in real-time.
-                </p>
+  const filteredClasses = filter === 'all' 
+    ? classes 
+    : classes.filter(c => c.status === filter);
+
+  const getStatusColor = (status: string) => {
+    const colors = {
+      scheduled: 'bg-blue-100 text-blue-700 border-blue-200',
+      active: 'bg-green-100 text-green-700 border-green-200',
+      completed: 'bg-gray-100 text-gray-700 border-gray-200',
+      cancelled: 'bg-red-100 text-red-700 border-red-200',
+    };
+    return colors[status as keyof typeof colors] || colors.scheduled;
+  };
+
+  const stats = {
+    total: classes.length,
+    scheduled: classes.filter(c => c.status === 'scheduled').length,
+    active: classes.filter(c => c.status === 'active').length,
+    completed: classes.filter(c => c.status === 'completed').length,
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">My Classes</h1>
+        <p className="text-gray-600 mt-1">Manage and monitor your class schedule</p>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Classes</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">{stats.total}</p>
             </div>
-
-            {/* Quick Actions */}
-            <div className="flex gap-3 mb-8">
-                <Link href="/faculty/create-class">
-                    <Button variant="gradient" className="gap-2">
-                        <span>+</span> Create Class
-                    </Button>
-                </Link>
-                <Link href="/faculty/live-class">
-                    <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 gap-2">
-                        🎥 Start Live Attendance
-                    </Button>
-                </Link>
+            <div className="bg-purple-500/10 text-purple-600 p-4 rounded-xl">
+              <Calendar className="w-6 h-6" />
             </div>
+          </div>
+        </Card>
 
-            {/* Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-                <StatCard label="Total Classes" value={classes.length} icon="📚" gradient="from-blue-600/10 to-blue-700/5" />
-                <StatCard label="Live Now" value={activeClasses} icon="🔴" gradient="from-red-600/10 to-red-700/5" />
-                <StatCard label="Today's Classes" value={todayClasses} icon="📅" gradient="from-violet-600/10 to-violet-700/5" />
-                <StatCard label="Total Students" value={totalStudents} icon="👥" gradient="from-emerald-600/10 to-emerald-700/5" />
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Scheduled</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">{stats.scheduled}</p>
             </div>
+            <div className="bg-blue-500/10 text-blue-600 p-4 rounded-xl">
+              <Clock className="w-6 h-6" />
+            </div>
+          </div>
+        </Card>
 
-            {/* Classes Table */}
-            <Card className="bg-slate-900/40 border-white/10">
-                <CardHeader className="border-b border-white/10 pb-4">
-                    <div className="flex items-center justify-between">
-                        <CardTitle className="text-white text-lg">All Classes</CardTitle>
-                        <Link href="/faculty/create-class">
-                            <Button size="sm" variant="gradient">+ New Class</Button>
-                        </Link>
-                    </div>
-                </CardHeader>
-                <CardContent className="pt-4 space-y-3">
-                    {loading ? (
-                        <div className="space-y-3">
-                            {[1, 2, 3].map((i) => (
-                                <div key={i} className="h-16 rounded-xl shimmer" />
-                            ))}
-                        </div>
-                    ) : classes.length === 0 ? (
-                        <div className="text-center py-16">
-                            <div className="text-6xl mb-4">📭</div>
-                            <p className="text-slate-400 font-medium">No classes yet</p>
-                            <p className="text-slate-600 text-sm mt-1 mb-6">Create your first class to get started</p>
-                            <Link href="/faculty/create-class">
-                                <Button variant="gradient">Create Your First Class</Button>
-                            </Link>
-                        </div>
-                    ) : (
-                        classes.map((cls) => <ClassRow key={cls._id} cls={cls} />)
-                    )}
-                </CardContent>
-            </Card>
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Active Now</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">{stats.active}</p>
+            </div>
+            <div className="bg-green-500/10 text-green-600 p-4 rounded-xl">
+              <Users className="w-6 h-6" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Completed</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">{stats.completed}</p>
+            </div>
+            <div className="bg-gray-500/10 text-gray-600 p-4 rounded-xl">
+              <Calendar className="w-6 h-6" />
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <Card className="p-4">
+        <div className="flex gap-2">
+          <Button
+            variant={filter === 'all' ? 'default' : 'outline'}
+            onClick={() => setFilter('all')}
+            className={filter === 'all' ? 'bg-purple-600 hover:bg-purple-700' : ''}
+          >
+            All Classes
+          </Button>
+          <Button
+            variant={filter === 'scheduled' ? 'default' : 'outline'}
+            onClick={() => setFilter('scheduled')}
+            className={filter === 'scheduled' ? 'bg-purple-600 hover:bg-purple-700' : ''}
+          >
+            Scheduled
+          </Button>
+          <Button
+            variant={filter === 'active' ? 'default' : 'outline'}
+            onClick={() => setFilter('active')}
+            className={filter === 'active' ? 'bg-purple-600 hover:bg-purple-700' : ''}
+          >
+            Active
+          </Button>
+          <Button
+            variant={filter === 'completed' ? 'default' : 'outline'}
+            onClick={() => setFilter('completed')}
+            className={filter === 'completed' ? 'bg-purple-600 hover:bg-purple-700' : ''}
+          >
+            Completed
+          </Button>
         </div>
-    );
+      </Card>
+
+      {/* Classes Table */}
+      <Card className="p-6">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Course Name
+                </th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Classroom Number
+                </th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Start Time
+                </th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  End Time
+                </th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-12 text-gray-500">
+                    Loading classes...
+                  </td>
+                </tr>
+              ) : filteredClasses.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-12 text-gray-500">
+                    No classes found
+                  </td>
+                </tr>
+              ) : (
+                filteredClasses.map((cls) => (
+                  <tr key={cls._id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="py-4 px-4">
+                      <div>
+                        <p className="font-semibold text-gray-900">{cls.courseName}</p>
+                        {cls.courseCode && (
+                          <p className="text-sm text-gray-500">{cls.courseCode}</p>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm text-gray-600">{cls.classroomNumber}</span>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4 text-sm text-gray-600">
+                      {new Date(cls.startTime).toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </td>
+                    <td className="py-4 px-4 text-sm text-gray-600">
+                      {new Date(cls.endTime).toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </td>
+                    <td className="py-4 px-4">
+                      <Badge className={`${getStatusColor(cls.status)} border`}>
+                        {cls.status.toUpperCase()}
+                      </Badge>
+                    </td>
+                    <td className="py-4 px-4 text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => router.push(`/faculty/class/${cls._id}`)}
+                        className="hover:bg-purple-50 hover:text-purple-600"
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        View Details
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  );
 }

@@ -22,3 +22,4 @@ pymongo==4.8.0         # Sync MongoDB driver
 # ── Utilities ─────────────────────────────────────────────────────────────────
 python-dotenv==1.0.1   # Load .env file
 Pillow==10.4.0         # Image processing utilities
+requests==2.32.3       # HTTP requests for downloading images from URLs
