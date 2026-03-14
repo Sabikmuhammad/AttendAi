@@ -1,18 +1,21 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Class from '@/models/Class';
 import Faculty from '@/models/Faculty';
 import { auth } from '@/lib/auth';
+import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
 
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
+    const tenant = await getTenantContext(request);
 
     // Get facultyId from query parameter (temporary workaround for auth issues)
     const { searchParams } = new URL(request.url);
     const facultyIdParam = searchParams.get('facultyId');
 
-    let facultyQuery: any = {};
+    let facultyQuery: any = withInstitutionScope({}, tenant.institutionId);
     
     // Try to get session if available
     try {
@@ -20,23 +23,28 @@ export async function GET(request: NextRequest) {
       if (session && session.user) {
         console.log('🔐 Session found for user:', session.user.id);
         // Session has User ID, need to find Faculty record first
-        const faculty = await Faculty.findOne({ userId: session.user.id });
+        const faculty = await Faculty.findOne(
+          withInstitutionScope({ userId: session.user.id }, tenant.institutionId)
+        );
         if (faculty) {
           console.log('✅ Found faculty record:', faculty._id.toString());
           // Use Faculty's _id to query classes
-          facultyQuery = { facultyId: faculty._id.toString() };
+          facultyQuery = withInstitutionScope(
+            { facultyId: faculty._id.toString() },
+            tenant.institutionId
+          );
         } else {
           console.log('⚠️ No faculty record found for userId:', session.user.id);
         }
       }
-    } catch (authError) {
+    } catch {
       console.log('No auth session, using facultyId parameter or returning all classes');
     }
 
     // If facultyId parameter is provided, use that instead
     if (facultyIdParam) {
       console.log('📝 Using facultyId parameter:', facultyIdParam);
-      facultyQuery = { facultyId: facultyIdParam };
+      facultyQuery = withInstitutionScope({ facultyId: facultyIdParam }, tenant.institutionId);
     }
 
     console.log('🔍 Querying classes with:', JSON.stringify(facultyQuery));

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Class from '@/models/Class';
+import { getTenantContext } from '@/lib/tenant';
 
 /**
  * API route to automatically activate classes based on start time
@@ -9,11 +10,13 @@ import Class from '@/models/Class';
 export async function POST(request: NextRequest) {
   try {
     await connectDB();
+    const tenant = await getTenantContext(request);
 
     const currentTime = new Date();
 
     // Find all scheduled classes whose start time has passed
     const classesToActivate = await Class.find({
+      institutionId: tenant.institutionId,
       status: 'scheduled',
       startTime: { $lte: currentTime },
     });
@@ -29,6 +32,7 @@ export async function POST(request: NextRequest) {
 
     // Also check for classes that should be completed
     const classesToComplete = await Class.find({
+      institutionId: tenant.institutionId,
       status: 'active',
       endTime: { $lte: currentTime },
     });
@@ -69,15 +73,18 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
+    const tenant = await getTenantContext(request);
 
     const currentTime = new Date();
 
     const scheduledCount = await Class.countDocuments({
+      institutionId: tenant.institutionId,
       status: 'scheduled',
       startTime: { $lte: currentTime },
     });
 
     const activeToComplete = await Class.countDocuments({
+      institutionId: tenant.institutionId,
       status: 'active',
       endTime: { $lte: currentTime },
     });

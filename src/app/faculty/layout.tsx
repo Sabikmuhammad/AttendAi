@@ -14,6 +14,7 @@ export default function FacultyLayout({
 
   const navItems = [
     { href: '/faculty/dashboard', icon: 'LayoutDashboard', label: 'Dashboard' },
+    { href: '/faculty/my-section', icon: 'Users', label: 'My Section' },
     { href: '/faculty/create-class', icon: 'Plus', label: 'Create Class' },
     { href: '/faculty/live-class', icon: 'Camera', label: 'Live Class' },
     { href: '/faculty/attendance', icon: 'FileText', label: 'Attendance' },

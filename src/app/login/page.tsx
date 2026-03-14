@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -9,12 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
-import { Loader2, Mail, Lock, Sparkles, CheckCircle2, Shield, Zap } from 'lucide-react';
+import { Loader2, Mail, Lock, Sparkles, CheckCircle2, Shield, Zap, Building2 } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [institutionCode, setInstitutionCode] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -24,32 +24,38 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const result = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          password,
+          institutionCode,
+        }),
       });
 
-      if (result?.error) {
-        setError(result.error);
-      } else {
-        // Fetch session to get user role
-        const response = await fetch('/api/auth/session');
-        const session = await response.json();
-        
-        // Redirect based on role
-        if (session?.user?.role === 'admin') {
-          router.push('/admin/dashboard');
-        } else if (session?.user?.role === 'faculty') {
-          router.push('/faculty/dashboard');
-        } else if (session?.user?.role === 'student') {
-          router.push('/student/dashboard');
-        } else {
-          router.push('/dashboard');
-        }
+      const result = await response.json();
+
+      if (!response.ok) {
+        setError(result.error || 'Login failed');
+        return;
       }
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during login');
+
+      const role = result?.user?.role as string | undefined;
+
+      if (role === 'super_admin') {
+        router.push('/super-admin');
+      } else if (role === 'institution_admin' || role === 'admin') {
+        router.push('/admin');
+      } else if (role === 'faculty') {
+        router.push('/faculty');
+      } else if (role === 'student') {
+        router.push('/student');
+      } else {
+        router.push('/dashboard');
+      }
+    } catch (err) {
+      setError((err as Error).message || 'An error occurred during login');
     } finally {
       setIsLoading(false);
     }
@@ -166,6 +172,25 @@ export default function LoginPage() {
                     placeholder="you@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10 h-12 border-gray-300 focus:border-violet-500 focus:ring-violet-500"
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="institutionCode" className="text-gray-700 font-medium">
+                  Institution Code
+                </Label>
+                <div className="relative">
+                  <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <Input
+                    id="institutionCode"
+                    type="text"
+                    placeholder="e.g. ABCU"
+                    value={institutionCode}
+                    onChange={(e) => setInstitutionCode(e.target.value.toUpperCase())}
                     className="pl-10 h-12 border-gray-300 focus:border-violet-500 focus:ring-violet-500"
                     required
                     disabled={isLoading}

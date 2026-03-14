@@ -46,25 +46,25 @@ const useCases = [
 export function UseCasesSection() {
   return (
     <SectionWrapper id="use-cases">
-      <div className="text-center mb-16">
+      <div className="text-center mb-12 sm:mb-16">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold mb-4 sm:mb-6 px-4">
             <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
               Built for Every Industry
             </span>
           </h2>
-          <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg lg:text-xl text-gray-400 max-w-2xl mx-auto px-4">
             From education to enterprise, AttendAI adapts to your needs
           </p>
         </motion.div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 px-4 sm:px-0">
         {useCases.slice(0, 3).map((useCase, index) => (
           <motion.div
             key={useCase.title}
@@ -106,7 +106,7 @@ export function UseCasesSection() {
       </div>
 
       {/* Second Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 max-w-4xl mx-auto">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-6 max-w-4xl mx-auto px-4 sm:px-0">
         {useCases.slice(3).map((useCase, index) => (
           <motion.div
             key={useCase.title}

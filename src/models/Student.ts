@@ -9,7 +9,16 @@ const StudentSchema = new mongoose.Schema({
   studentId: {
     type: String,
     required: true,
-    unique: true,
+  },
+  institutionId: {
+    type: String,
+    required: true,
+    default: () => process.env.DEFAULT_INSTITUTION_ID || 'default-institution',
+    index: true,
+  },
+  departmentId: {
+    type: String,
+    required: false,
   },
   department: {
     type: String,
@@ -17,7 +26,11 @@ const StudentSchema = new mongoose.Schema({
   },
   section: {
     type: String,
-    required: false,
+    required: true,
+  },
+  semester: {
+    type: String,
+    required: true,
   },
   imageUrl: String,
   faceEmbedding: {
@@ -45,5 +58,7 @@ StudentSchema.pre('save', function(next) {
   this.updatedAt = new Date();
   next();
 });
+
+StudentSchema.index({ institutionId: 1, studentId: 1 }, { unique: true });
 
 export default mongoose.models.Student || mongoose.model('Student', StudentSchema);

@@ -13,6 +13,8 @@ interface Student {
   registerNumber: string;
   email: string;
   department: string;
+  section?: string;
+  semester?: string;
   imageUrl?: string;
   createdAt: string;
 }
@@ -286,6 +288,8 @@ function AddStudentModal({
     registerNumber: '',
     email: '',
     department: '',
+    section: '',
+    semester: '',
     imageUrl: '',
   });
   const [loading, setLoading] = useState(false);
@@ -298,7 +302,15 @@ function AddStudentModal({
       const response = await fetch('/api/students', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          studentId: formData.registerNumber,
+          department: formData.department,
+          section: formData.section,
+          semester: formData.semester,
+          imageUrl: formData.imageUrl,
+        }),
       });
 
       if (response.ok) {
@@ -356,6 +368,36 @@ function AddStudentModal({
                 setFormData({ ...formData, department: e.target.value })
               }
             />
+          </div>
+          <div>
+            <Label>Section</Label>
+            <Input
+              required
+              placeholder="e.g., A, B, C"
+              value={formData.section}
+              onChange={(e) =>
+                setFormData({ ...formData, section: e.target.value })
+              }
+            />
+          </div>
+          <div>
+            <Label>Semester</Label>
+            <select
+              required
+              value={formData.semester}
+              onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            >
+              <option value="">Select Semester</option>
+              <option value="1">Semester 1</option>
+              <option value="2">Semester 2</option>
+              <option value="3">Semester 3</option>
+              <option value="4">Semester 4</option>
+              <option value="5">Semester 5</option>
+              <option value="6">Semester 6</option>
+              <option value="7">Semester 7</option>
+              <option value="8">Semester 8</option>
+            </select>
           </div>
           <div>
             <Label>Image URL (optional)</Label>

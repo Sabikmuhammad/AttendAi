@@ -65,25 +65,25 @@ const plans = [
 export function PricingSection() {
   return (
     <SectionWrapper id="pricing" className="bg-black/30">
-      <div className="text-center mb-16">
+      <div className="text-center mb-12 sm:mb-16">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold mb-4 sm:mb-6 px-4">
             <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
               Simple, Transparent Pricing
             </span>
           </h2>
-          <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg lg:text-xl text-gray-400 max-w-2xl mx-auto px-4">
             Choose the perfect plan for your institution
           </p>
         </motion.div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {plans.map((plan, index) => (
           <motion.div
             key={plan.name}
@@ -104,34 +104,34 @@ export function PricingSection() {
             )}
 
             <div
-              className={`relative backdrop-blur-xl border rounded-2xl p-8 shadow-2xl transition-all group h-full flex flex-col ${
+              className={`relative backdrop-blur-xl border rounded-2xl p-6 sm:p-8 shadow-2xl transition-all group h-full flex flex-col ${
                 plan.highlighted
-                  ? 'bg-white/10 border-purple-500/50 scale-105'
+                  ? 'bg-white/10 border-purple-500/50 lg:scale-105'
                   : 'bg-white/5 border-white/10 hover:bg-white/10'
               }`}
             >
               {/* Plan Name */}
-              <h3 className="text-2xl font-bold text-white mb-2">{plan.name}</h3>
-              <p className="text-gray-400 text-sm mb-6">{plan.description}</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">{plan.name}</h3>
+              <p className="text-gray-400 text-xs sm:text-sm mb-4 sm:mb-6">{plan.description}</p>
 
               {/* Price */}
-              <div className="mb-8">
+              <div className="mb-6 sm:mb-8">
                 <div className="flex items-baseline">
                   {plan.price === 'Custom' ? (
-                    <span className="text-4xl font-bold text-white">{plan.price}</span>
+                    <span className="text-3xl sm:text-4xl font-bold text-white">{plan.price}</span>
                   ) : (
                     <>
-                      <span className="text-5xl font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
+                      <span className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
                         ${plan.price}
                       </span>
-                      <span className="text-gray-400 ml-2">/{plan.period}</span>
+                      <span className="text-gray-400 ml-2 text-sm sm:text-base">/{plan.period}</span>
                     </>
                   )}
                 </div>
               </div>
 
               {/* Features */}
-              <ul className="space-y-4 mb-8 flex-grow">
+              <ul className="space-y-3 sm:space-y-4 mb-6 sm:mb-8 flex-grow">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-start">
                     <Check className={`h-5 w-5 mr-3 flex-shrink-0 ${

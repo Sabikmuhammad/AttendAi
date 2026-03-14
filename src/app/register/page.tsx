@@ -15,6 +15,7 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    institutionCode: '',
     password: '',
     confirmPassword: '',
     role: 'student' as 'student' | 'faculty',
@@ -22,6 +23,7 @@ export default function RegisterPage() {
     facultyId: '',
     department: '',
     section: '',
+    semester: '',
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -46,6 +48,16 @@ export default function RegisterPage() {
       return;
     }
 
+    if (formData.role === 'student' && !formData.section) {
+      setError('Section is required for students');
+      return;
+    }
+
+    if (formData.role === 'student' && !formData.semester) {
+      setError('Semester is required for students');
+      return;
+    }
+
     if (formData.role === 'faculty' && !formData.facultyId) {
       setError('Faculty ID is required');
       return;
@@ -53,6 +65,11 @@ export default function RegisterPage() {
 
     if (!formData.department) {
       setError('Department is required');
+      return;
+    }
+
+    if (!formData.institutionCode) {
+      setError('Institution code is required');
       return;
     }
 
@@ -67,10 +84,12 @@ export default function RegisterPage() {
           email: formData.email,
           password: formData.password,
           role: formData.role,
+          institutionCode: formData.institutionCode,
           studentId: formData.role === 'student' ? formData.studentId : undefined,
           facultyId: formData.role === 'faculty' ? formData.facultyId : undefined,
           department: formData.department,
           section: formData.role === 'student' ? formData.section : undefined,
+          semester: formData.role === 'student' ? formData.semester : undefined,
         }),
       });
 
@@ -81,9 +100,11 @@ export default function RegisterPage() {
       }
 
       // Redirect to OTP verification page
-      router.push(`/verify-otp?email=${encodeURIComponent(formData.email)}`);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during registration');
+      router.push(
+        `/verify-otp?email=${encodeURIComponent(formData.email)}&institutionCode=${encodeURIComponent(formData.institutionCode)}`
+      );
+    } catch (err) {
+      setError((err as Error).message || 'An error occurred during registration');
     } finally {
       setIsLoading(false);
     }
@@ -160,6 +181,28 @@ export default function RegisterPage() {
                   placeholder="you@example.com"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="pl-10 h-12 border-gray-300 focus:border-violet-500 focus:ring-violet-500"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
+            {/* Institution Code */}
+            <div className="space-y-2">
+              <Label htmlFor="institutionCode" className="text-gray-700 font-medium">
+                Institution Code
+              </Label>
+              <div className="relative">
+                <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Input
+                  id="institutionCode"
+                  type="text"
+                  placeholder="e.g., ABCU"
+                  value={formData.institutionCode}
+                  onChange={(e) =>
+                    setFormData({ ...formData, institutionCode: e.target.value.toUpperCase() })
+                  }
                   className="pl-10 h-12 border-gray-300 focus:border-violet-500 focus:ring-violet-500"
                   required
                   disabled={isLoading}
@@ -278,23 +321,51 @@ export default function RegisterPage() {
 
             {/* Section (only for students) */}
             {formData.role === 'student' && (
-              <div className="space-y-2">
-                <Label htmlFor="section" className="text-gray-700 font-medium">
-                  Section (Optional)
-                </Label>
-                <div className="relative">
-                  <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <Input
-                    id="section"
-                    type="text"
-                    placeholder="e.g., A, B, C"
-                    value={formData.section}
-                    onChange={(e) => setFormData({ ...formData, section: e.target.value })}
-                    className="pl-10 h-12 border-gray-300 focus:border-violet-500 focus:ring-violet-500"
-                    disabled={isLoading}
-                  />
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="section" className="text-gray-700 font-medium">
+                    Section *
+                  </Label>
+                  <div className="relative">
+                    <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <Input
+                      id="section"
+                      type="text"
+                      placeholder="e.g., A, B, C"
+                      value={formData.section}
+                      onChange={(e) => setFormData({ ...formData, section: e.target.value })}
+                      className="pl-10 h-12 border-gray-300 focus:border-violet-500 focus:ring-violet-500"
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
                 </div>
-              </div>
+
+                {/* Semester */}
+                <div className="space-y-2">
+                  <Label htmlFor="semester" className="text-gray-700 font-medium">
+                    Semester *
+                  </Label>
+                  <select
+                    id="semester"
+                    value={formData.semester}
+                    onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
+                    className="w-full h-12 px-4 border border-gray-300 rounded-lg focus:border-violet-500 focus:ring-2 focus:ring-violet-500 focus:ring-offset-0 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    required
+                    disabled={isLoading}
+                  >
+                    <option value="">Select Semester</option>
+                    <option value="1">Semester 1</option>
+                    <option value="2">Semester 2</option>
+                    <option value="3">Semester 3</option>
+                    <option value="4">Semester 4</option>
+                    <option value="5">Semester 5</option>
+                    <option value="6">Semester 6</option>
+                    <option value="7">Semester 7</option>
+                    <option value="8">Semester 8</option>
+                  </select>
+                </div>
+              </>
             )}
 
             {/* Password */}

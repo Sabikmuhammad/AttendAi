@@ -1,4 +1,4 @@
-import NextAuth, { DefaultSession, User as NextAuthUser } from 'next-auth';
+import NextAuth, { DefaultSession } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { connectDB } from '@/lib/mongodb';
@@ -8,12 +8,28 @@ declare module 'next-auth' {
   interface Session {
     user: {
       id: string;
-      role: 'admin' | 'faculty' | 'student';
+      role:
+        | 'super_admin'
+        | 'institution_admin'
+        | 'department_admin'
+        | 'admin'
+        | 'faculty'
+        | 'student';
+      institutionId: string;
+      departmentIds: string[];
       isVerified: boolean;
     } & DefaultSession['user'];
   }
   interface User {
-    role: 'admin' | 'faculty' | 'student';
+    role:
+      | 'super_admin'
+      | 'institution_admin'
+      | 'department_admin'
+      | 'admin'
+      | 'faculty'
+      | 'student';
+    institutionId: string;
+    departmentIds?: string[];
     isVerified: boolean;
   }
 }
@@ -48,23 +64,43 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
           const isPasswordValid = await bcrypt.compare(
             credentials.password as string,
-            user.password
+            user.passwordHash || user.password || ''
           );
 
           if (!isPasswordValid) {
             throw new Error('Invalid password');
           }
 
+          // NextAuth JWT encoding uses structured cloning under the hood,
+          // so values must be plain serializable primitives/arrays.
+          const departmentIds = Array.isArray(user.departmentIds)
+            ? user.departmentIds.map((id) => String(id))
+            : [];
+          const normalizedRole = user.role as
+            | 'super_admin'
+            | 'institution_admin'
+            | 'department_admin'
+            | 'admin'
+            | 'faculty'
+            | 'student';
+
           return {
             id: user._id.toString(),
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            isVerified: user.isVerified,
-            image: user.imageUrl,
+            name: String(user.name),
+            email: String(user.email),
+            role: normalizedRole,
+            institutionId:
+              String(
+                user.institutionId ||
+                  process.env.DEFAULT_INSTITUTION_ID ||
+                  'default-institution'
+              ),
+            departmentIds,
+            isVerified: Boolean(user.isVerified),
+            image: user.imageUrl ? String(user.imageUrl) : undefined,
           };
-        } catch (error: any) {
-          throw new Error(error.message || 'Authentication failed');
+        } catch (error) {
+          throw new Error((error as Error).message || 'Authentication failed');
         }
       },
     }),
@@ -74,6 +110,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.institutionId = String(user.institutionId);
+        token.departmentIds = Array.isArray(user.departmentIds)
+          ? user.departmentIds.map((id) => String(id))
+          : [];
         token.isVerified = user.isVerified;
       }
       return token;
@@ -81,7 +121,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
-        session.user.role = token.role as 'admin' | 'faculty' | 'student';
+        session.user.role = token.role as
+          | 'super_admin'
+          | 'institution_admin'
+          | 'department_admin'
+          | 'admin'
+          | 'faculty'
+          | 'student';
+        session.user.institutionId =
+          (token.institutionId as string) ||
+          process.env.DEFAULT_INSTITUTION_ID ||
+          'default-institution';
+        session.user.departmentIds = (token.departmentIds as string[]) || [];
         session.user.isVerified = token.isVerified as boolean;
       }
       return session;

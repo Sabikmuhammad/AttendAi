@@ -1,7 +1,18 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Student from '@/models/Student';
 import User from '@/models/User';
+import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
+
+function isStudentsManagerRole(role?: string): boolean {
+  return (
+    role === 'super_admin' ||
+    role === 'institution_admin' ||
+    role === 'department_admin' ||
+    role === 'admin'
+  );
+}
 
 // PATCH update student
 export async function PATCH(
@@ -10,13 +21,18 @@ export async function PATCH(
 ) {
   try {
     await connectDB();
+    const tenant = await getTenantContext(req);
+
+    if (!tenant.userId || !tenant.institutionId || !isStudentsManagerRole(tenant.role)) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
 
     const { id } = await params;
     const body = await req.json();
     const { name, email, registerNumber, department, imageUrl, faceEmbedding } = body;
 
     // Find the student to get the userId
-    const student = await Student.findById(id);
+    const student = await Student.findOne(withInstitutionScope({ _id: id }, tenant.institutionId));
     if (!student) {
       return NextResponse.json(
         { success: false, error: 'Student not found' },
@@ -33,7 +49,10 @@ export async function PATCH(
     
     if (Object.keys(studentUpdateData).length > 0) {
       studentUpdateData.updatedAt = new Date();
-      await Student.findByIdAndUpdate(id, { $set: studentUpdateData });
+      await Student.findOneAndUpdate(
+        withInstitutionScope({ _id: id }, tenant.institutionId),
+        { $set: studentUpdateData }
+      );
     }
 
     // Update user fields (name, email)
@@ -42,11 +61,14 @@ export async function PATCH(
     if (email) userUpdateData.email = email.toLowerCase();
 
     if (Object.keys(userUpdateData).length > 0) {
-      await User.findByIdAndUpdate(student.userId, { $set: userUpdateData });
+      await User.findOneAndUpdate(
+        withInstitutionScope({ _id: student.userId }, tenant.institutionId),
+        { $set: userUpdateData }
+      );
     }
 
     // Fetch updated student with populated user data
-    const updatedStudent = await Student.findById(id)
+    const updatedStudent = await Student.findOne(withInstitutionScope({ _id: id }, tenant.institutionId))
       .populate('userId', 'name email imageUrl')
       .lean();
 
@@ -98,9 +120,14 @@ export async function GET(
 ) {
   try {
     await connectDB();
+    const tenant = await getTenantContext(req);
+
+    if (!tenant.userId || !tenant.institutionId || !isStudentsManagerRole(tenant.role)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const { id } = await params;
-    const student = await Student.findById(id).lean();
+    const student = await Student.findOne(withInstitutionScope({ _id: id }, tenant.institutionId)).lean();
 
     if (!student) {
       return NextResponse.json(
@@ -126,9 +153,16 @@ export async function DELETE(
 ) {
   try {
     await connectDB();
+    const tenant = await getTenantContext(req);
+
+    if (!tenant.userId || !tenant.institutionId || !isStudentsManagerRole(tenant.role)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const { id } = await params;
-    const deletedStudent = await Student.findByIdAndDelete(id);
+    const deletedStudent = await Student.findOneAndDelete(
+      withInstitutionScope({ _id: id }, tenant.institutionId)
+    );
 
     if (!deletedStudent) {
       return NextResponse.json(

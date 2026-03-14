@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -5,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { BookOpen, Users, Clock, Building } from 'lucide-react';
+import { BookOpen, Users, Clock, Camera } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface Student {
@@ -15,6 +16,7 @@ interface Student {
   studentId: string;
   department: string;
   section?: string;
+  semester?: string;
   email: string;
   imageUrl?: string;
 }
@@ -29,22 +31,40 @@ interface Faculty {
   imageUrl?: string;
 }
 
+interface Classroom {
+  _id: string;
+  name: string;
+  roomNumber: string;
+  building?: string;
+  floor?: string;
+  capacity?: number;
+  isActive: boolean;
+  hasCamera: boolean;
+  cameraType: string;
+  rtspUrl?: string;
+}
+
 export default function CreateClassPage() {
   const router = useRouter();
   const [students, setStudents] = useState<Student[]>([]);
   const [faculty, setFaculty] = useState<Faculty[]>([]);
+  const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [formData, setFormData] = useState({
     courseName: '',
     courseCode: '',
+    classroomId: '',
     classroomNumber: '',
     facultyId: '',
     facultyName: '',
     department: '',
     startTime: '',
     endTime: '',
+    monitoringMode: 'development',
+    rtspUrl: '',
+    autoMonitoring: false,
   });
 
   useEffect(() => {
@@ -53,7 +73,7 @@ export default function CreateClassPage() {
 
   const fetchInitialData = async () => {
     setInitialLoading(true);
-    await Promise.all([fetchStudents(), fetchFaculty()]);
+    await Promise.all([fetchStudents(), fetchFaculty(), fetchClassrooms()]);
     setInitialLoading(false);
   };
 
@@ -72,6 +92,21 @@ export default function CreateClassPage() {
     }
   };
 
+  const fetchClassrooms = async () => {
+    try {
+      const response = await fetch('/api/classrooms');
+      const data = await response.json();
+      if (data.success) {
+        setClassrooms(data.classrooms.filter((c: Classroom) => c.isActive));
+        console.log('✅ Loaded classrooms:', data.classrooms.length);
+      } else {
+        console.error('Failed to fetch classrooms:', data.error);
+      }
+    } catch (error) {
+      console.error('Error fetching classrooms:', error);
+    }
+  };
+
   const fetchFaculty = async () => {
     try {
       const response = await fetch('/api/faculty');
@@ -84,6 +119,32 @@ export default function CreateClassPage() {
       }
     } catch (error) {
       console.error('Error fetching faculty:', error);
+    }
+  };
+
+  const handleClassroomSelect = (classroomId: string) => {
+    const selectedClassroom = classrooms.find(c => c._id === classroomId);
+    
+    if (selectedClassroom) {
+      setFormData({
+        ...formData,
+        classroomId: classroomId,
+        classroomNumber: selectedClassroom.roomNumber,
+        // Auto-fill camera settings from classroom
+        monitoringMode: selectedClassroom.cameraType === 'cctv' ? 'production' : 'development',
+        rtspUrl: selectedClassroom.rtspUrl || '',
+        autoMonitoring: selectedClassroom.cameraType === 'cctv',
+      });
+    } else {
+      // If no classroom selected, reset to manual entry
+      setFormData({
+        ...formData,
+        classroomId: '',
+        classroomNumber: '',
+        monitoringMode: 'development',
+        rtspUrl: '',
+        autoMonitoring: false,
+      });
     }
   };
 
@@ -111,6 +172,9 @@ export default function CreateClassPage() {
           startTime: formData.startTime,
           endTime: formData.endTime,
           studentIds: selectedStudents,
+          monitoringMode: formData.monitoringMode,
+          rtspUrl: formData.rtspUrl || undefined,
+          autoMonitoring: formData.autoMonitoring,
         }),
       });
 
@@ -236,15 +300,30 @@ export default function CreateClassPage() {
             </div>
 
             <div>
-              <Label>Classroom Number *</Label>
-              <Input
+              <Label>Classroom *</Label>
+              <select
                 required
-                placeholder="e.g., Room 301"
-                value={formData.classroomNumber}
-                onChange={(e) =>
-                  setFormData({ ...formData, classroomNumber: e.target.value })
-                }
-              />
+                disabled={classrooms.length === 0}
+                value={formData.classroomId}
+                onChange={(e) => handleClassroomSelect(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+              >
+                <option value="">
+                  {classrooms.length === 0 ? 'No classrooms available' : 'Select Classroom'}
+                </option>
+                {classrooms.map((classroom) => (
+                  <option key={classroom._id} value={classroom._id}>
+                    {classroom.name} - {classroom.roomNumber}
+                    {classroom.building && ` (${classroom.building})`}
+                    {classroom.hasCamera && ` • ${classroom.cameraType.toUpperCase()}`}
+                  </option>
+                ))}
+              </select>
+              {formData.classroomId && (
+                <p className="text-sm text-gray-500 mt-1">
+                  Selected: {classrooms.find(c => c._id === formData.classroomId)?.roomNumber}
+                </p>
+              )}
             </div>
 
             <div>
@@ -330,6 +409,111 @@ export default function CreateClassPage() {
                   setFormData({ ...formData, endTime: e.target.value })
                 }
               />
+            </div>
+          </div>
+        </Card>
+
+        {/* Camera Monitoring Configuration */}
+        <Card className="p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+              <Camera className="w-5 h-5 text-blue-600" />
+            </div>
+            <h2 className="text-lg font-semibold text-gray-900">Camera Monitoring</h2>
+          </div>
+
+          <div className="space-y-6">
+            {/* Monitoring Mode */}
+            <div>
+              <Label>Monitoring Mode *</Label>
+              <select
+                required
+                value={formData.monitoringMode}
+                onChange={(e) => {
+                  const mode = e.target.value;
+                  setFormData({ 
+                    ...formData, 
+                    monitoringMode: mode,
+                    autoMonitoring: mode === 'production' // Auto-enable for CCTV
+                  });
+                }}
+                disabled={!!formData.classroomId}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+              >
+                <option value="development">Development (Webcam - Manual Start)</option>
+                <option value="production">Production (CCTV - Automatic)</option>
+              </select>
+              <p className="text-sm text-gray-500 mt-2">
+                {formData.classroomId ? (
+                  <span className="text-blue-600">
+                    🔒 Monitoring mode set automatically from selected classroom
+                  </span>
+                ) : (
+                  <>
+                    {formData.monitoringMode === 'development' 
+                      ? '📹 Webcam mode requires manual start from camera control page'
+                      : '📷 CCTV mode starts automatically when class begins'}
+                  </>
+                )}
+              </p>
+            </div>
+
+            {/* RTSP URL - Only for production mode */}
+            {formData.monitoringMode === 'production' && (
+              <div>
+                <Label>RTSP Camera URL *</Label>
+                <Input
+                  type="text"
+                  required={formData.monitoringMode === 'production'}
+                  value={formData.rtspUrl}
+                  onChange={(e) =>
+                    setFormData({ ...formData, rtspUrl: e.target.value })
+                  }
+                  placeholder="rtsp://username:password@192.168.1.100:554/stream"
+                  className="font-mono text-sm"
+                  readOnly={!!formData.classroomId}
+                  disabled={!!formData.classroomId}
+                />
+                {formData.classroomId ? (
+                  <p className="text-xs text-blue-600 mt-2">
+                    🔒 RTSP URL configured from selected classroom
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-xs text-gray-500 mt-2">
+                      <strong>Example:</strong> rtsp://admin:password@192.168.1.100:554/Streaming/Channels/101
+                    </p>
+                    <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <p className="text-xs text-blue-800">
+                        <strong>💡 Tip:</strong> Test your RTSP URL with VLC Media Player before adding it here.
+                        Common ports: 554 (RTSP), 8554 (some systems)
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Auto-monitoring checkbox */}
+            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+              <input
+                type="checkbox"
+                id="autoMonitoring"
+                checked={formData.autoMonitoring}
+                onChange={(e) =>
+                  setFormData({ ...formData, autoMonitoring: e.target.checked })
+                }
+                disabled={formData.monitoringMode === 'production'}
+                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+              />
+              <label htmlFor="autoMonitoring" className="text-sm text-gray-700">
+                <strong>Enable automatic monitoring</strong>
+                <span className="block text-xs text-gray-500 mt-1">
+                  {formData.monitoringMode === 'production'
+                    ? 'Automatically enabled for CCTV cameras'
+                    : 'For webcam mode, this will attempt auto-start (not recommended)'}
+                </span>
+              </label>
             </div>
           </div>
         </Card>

@@ -1,17 +1,40 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
 import { connectDB } from '@/lib/mongodb';
 import Student from '@/models/Student';
 import User from '@/models/User';
+import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
+
+function isStudentsManagerRole(role?: string): boolean {
+  return (
+    role === 'super_admin' ||
+    role === 'institution_admin' ||
+    role === 'department_admin' ||
+    role === 'admin'
+  );
+}
 
 // GET all students
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
+    const tenant = await getTenantContext(req);
+
+    if (!tenant.userId || !tenant.institutionId || !isStudentsManagerRole(tenant.role)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const { searchParams } = new URL(req.url);
     const department = searchParams.get('department');
+    const section = searchParams.get('section');
+    const semester = searchParams.get('semester');
 
-    const filter = department ? { department } : {};
+    const filter: any = withInstitutionScope({}, tenant.institutionId);
+    if (department) filter.department = department;
+    if (section) filter.section = section;
+    if (semester) filter.semester = semester;
+
     const students = await Student.find(filter)
       .populate('userId', 'name email imageUrl')
       .sort({ createdAt: -1 })
@@ -26,6 +49,7 @@ export async function GET(req: NextRequest) {
       registerNumber: student.studentId, // For backward compatibility
       department: student.department,
       section: student.section,
+      semester: student.semester,
       imageUrl: student.imageUrl || student.userId?.imageUrl,
       faceEmbedding: student.faceEmbedding,
       createdAt: student.createdAt,
@@ -46,20 +70,27 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
+    const tenant = await getTenantContext(req);
+
+    if (!tenant.userId || !tenant.institutionId || !isStudentsManagerRole(tenant.role)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const body = await req.json();
-    const { name, email, studentId, department, section, imageUrl, password } = body;
+    const { name, email, studentId, department, section, semester, imageUrl, password } = body;
 
     // Validate required fields
-    if (!name || !email || !studentId || !department) {
+    if (!name || !email || !studentId || !department || !section || !semester) {
       return NextResponse.json(
-        { error: 'Missing required fields: name, email, studentId, department' },
+        { error: 'Missing required fields: name, email, studentId, department, section, semester' },
         { status: 400 }
       );
     }
 
     // Check if student ID already exists
-    const existingStudent = await Student.findOne({ studentId });
+    const existingStudent = await Student.findOne(
+      withInstitutionScope({ studentId }, tenant.institutionId)
+    );
     if (existingStudent) {
       return NextResponse.json(
         { error: 'Student with this ID already exists' },
@@ -68,7 +99,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if user with email already exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    const existingUser = await User.findOne(
+      withInstitutionScope({ email: email.toLowerCase() }, tenant.institutionId)
+    );
     if (existingUser) {
       return NextResponse.json(
         { error: 'User with this email already exists' },
@@ -77,7 +110,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Create user account
-    const bcrypt = require('bcryptjs');
     const hashedPassword = password 
       ? await bcrypt.hash(password, 12)
       : await bcrypt.hash('ChangeMe@123', 12); // Default password
@@ -87,6 +119,7 @@ export async function POST(req: NextRequest) {
       email: email.toLowerCase(),
       password: hashedPassword,
       role: 'student',
+      institutionId: tenant.institutionId,
       isVerified: true, // Admin-created users are auto-verified
       imageUrl,
     });
@@ -96,11 +129,15 @@ export async function POST(req: NextRequest) {
       userId: user._id,
       studentId,
       department,
-      section: section || '',
+      section,
+      semester,
+      institutionId: tenant.institutionId,
       imageUrl,
     });
 
-    const populatedStudent = await Student.findById(student._id)
+    const populatedStudent = await Student.findOne(
+      withInstitutionScope({ _id: student._id }, tenant.institutionId)
+    )
       .populate('userId', 'name email imageUrl')
       .lean();
 
@@ -140,6 +177,11 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     await connectDB();
+    const tenant = await getTenantContext(req);
+
+    if (!tenant.userId || !tenant.institutionId || !isStudentsManagerRole(tenant.role)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const { searchParams } = new URL(req.url);
     const studentId = searchParams.get('id');
@@ -151,7 +193,9 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    const deletedStudent = await Student.findByIdAndDelete(studentId);
+    const deletedStudent = await Student.findOneAndDelete(
+      withInstitutionScope({ _id: studentId }, tenant.institutionId)
+    );
 
     if (!deletedStudent) {
       return NextResponse.json(

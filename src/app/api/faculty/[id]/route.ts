@@ -1,7 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Faculty from '@/models/Faculty';
 import User from '@/models/User';
+import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
 
 // GET single faculty
 export async function GET(
@@ -10,9 +12,10 @@ export async function GET(
 ) {
   try {
     await connectDB();
+    const tenant = await getTenantContext(req);
 
     const { id } = await params;
-    const faculty = await Faculty.findById(id)
+    const faculty = await Faculty.findOne(withInstitutionScope({ _id: id }, tenant.institutionId))
       .populate('userId', 'name email imageUrl')
       .lean();
 
@@ -34,6 +37,8 @@ export async function GET(
         email: facultyData.userId?.email || '',
         department: facultyData.department,
         designation: facultyData.designation,
+        section: facultyData.section,
+        semester: facultyData.semester,
         imageUrl: facultyData.userId?.imageUrl,
       },
     });
@@ -53,13 +58,14 @@ export async function PATCH(
 ) {
   try {
     await connectDB();
+    const tenant = await getTenantContext(req);
 
     const { id } = await params;
     const body = await req.json();
-    const { name, email, department, designation, imageUrl } = body;
+    const { name, email, department, designation, section, semester, imageUrl } = body;
 
     // Find the faculty record
-    const faculty = await Faculty.findById(id);
+    const faculty = await Faculty.findOne(withInstitutionScope({ _id: id }, tenant.institutionId));
     if (!faculty) {
       return NextResponse.json(
         { success: false, error: 'Faculty not found' },
@@ -67,28 +73,43 @@ export async function PATCH(
       );
     }
 
-    // Update faculty fields (department, designation)
+    // Update faculty fields (department, designation, section, semester)
     const facultyUpdateData: any = {};
-    if (department) facultyUpdateData.department = department;
+    if (department !== undefined) facultyUpdateData.department = department;
     if (designation !== undefined) facultyUpdateData.designation = designation;
+    
+    // Handle section and semester - convert empty strings to null to clear the field
+    if (section !== undefined) {
+      facultyUpdateData.section = section === '' ? null : section;
+    }
+    if (semester !== undefined) {
+      facultyUpdateData.semester = semester === '' ? null : semester;
+    }
     
     if (Object.keys(facultyUpdateData).length > 0) {
       facultyUpdateData.updatedAt = new Date();
-      await Faculty.findByIdAndUpdate(id, { $set: facultyUpdateData });
+      await Faculty.findOneAndUpdate(
+        withInstitutionScope({ _id: id }, tenant.institutionId),
+        { $set: facultyUpdateData },
+        { new: true }
+      );
     }
 
     // Update user fields (name, email, imageUrl)
     const userUpdateData: any = {};
-    if (name) userUpdateData.name = name;
-    if (email) userUpdateData.email = email.toLowerCase();
+    if (name !== undefined) userUpdateData.name = name;
+    if (email !== undefined) userUpdateData.email = email.toLowerCase();
     if (imageUrl !== undefined) userUpdateData.imageUrl = imageUrl;
 
     if (Object.keys(userUpdateData).length > 0) {
-      await User.findByIdAndUpdate(faculty.userId, { $set: userUpdateData });
+      await User.findOneAndUpdate(
+        withInstitutionScope({ _id: faculty.userId }, tenant.institutionId),
+        { $set: userUpdateData }
+      );
     }
 
     // Fetch updated faculty
-    const updatedFaculty = await Faculty.findById(id)
+    const updatedFaculty = await Faculty.findOne(withInstitutionScope({ _id: id }, tenant.institutionId))
       .populate('userId', 'name email imageUrl')
       .lean();
 
@@ -104,6 +125,8 @@ export async function PATCH(
         email: facultyData.userId?.email || '',
         department: facultyData.department,
         designation: facultyData.designation,
+        section: facultyData.section,
+        semester: facultyData.semester,
         imageUrl: facultyData.userId?.imageUrl,
       },
     });
@@ -123,11 +146,12 @@ export async function DELETE(
 ) {
   try {
     await connectDB();
+    const tenant = await getTenantContext(req);
 
     const { id } = await params;
     
     // Find the faculty record to get the userId
-    const faculty = await Faculty.findById(id);
+    const faculty = await Faculty.findOne(withInstitutionScope({ _id: id }, tenant.institutionId));
     if (!faculty) {
       return NextResponse.json(
         { success: false, error: 'Faculty not found' },
@@ -138,10 +162,10 @@ export async function DELETE(
     const userId = faculty.userId;
 
     // Delete the faculty record
-    await Faculty.findByIdAndDelete(id);
+    await Faculty.findOneAndDelete(withInstitutionScope({ _id: id }, tenant.institutionId));
 
     // Delete the associated user record
-    await User.findByIdAndDelete(userId);
+    await User.findOneAndDelete(withInstitutionScope({ _id: userId }, tenant.institutionId));
 
     return NextResponse.json({
       success: true,

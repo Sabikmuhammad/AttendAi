@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Attendance from '@/models/Attendance';
 import Class from '@/models/Class';
 import Student from '@/models/Student';
+import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
 
 /**
  * API endpoint to mark attendance for detected students
@@ -21,9 +23,12 @@ export async function POST(request: NextRequest) {
     }
 
     await connectDB();
+    const tenant = await getTenantContext(request);
 
     // Verify class exists and is active
-    const classData = await Class.findById(classId);
+    const classData = await Class.findOne(
+      withInstitutionScope({ _id: classId }, tenant.institutionId)
+    );
     
     if (!classData) {
       return NextResponse.json(
@@ -47,6 +52,7 @@ export async function POST(request: NextRequest) {
 
       // Check if attendance already exists for this student in this class
       const existingAttendance = await Attendance.findOne({
+        institutionId: tenant.institutionId,
         classId,
         studentId,
       });
@@ -66,15 +72,20 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      // Get student details
-      const studentData = await Student.findById(studentId);
+      // Get student details scoped to the same institution
+      const studentDataScoped = await Student.findOne(
+        withInstitutionScope({ _id: studentId }, tenant.institutionId)
+      )
+        .populate('userId', 'name')
+        .lean();
       
-      if (!studentData) {
+      if (!studentDataScoped) {
         continue;
       }
 
       // Create attendance record
       const attendanceRecord = new Attendance({
+        institutionId: tenant.institutionId,
         classId,
         studentId,
         detectedTime: new Date(detectedTime),
@@ -87,8 +98,8 @@ export async function POST(request: NextRequest) {
 
       newAttendanceRecords.push({
         studentId,
-        name: studentData.name,
-        registerNumber: studentData.registerNumber,
+        name: (studentDataScoped as any).userId?.name || (studentDataScoped as any).studentId,
+        registerNumber: (studentDataScoped as any).studentId,
         detectedTime,
         confidence,
       });

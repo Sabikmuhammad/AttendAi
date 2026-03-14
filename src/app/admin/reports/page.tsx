@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Download, FileText, Search, Calendar, Filter } from 'lucide-react';
+import { Download, FileText, Search, Calendar } from 'lucide-react';
 
 interface AttendanceRecord {
   _id: string;

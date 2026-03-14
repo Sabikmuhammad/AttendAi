@@ -1,11 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { connectDB } from '@/lib/mongodb';
 import Student from '@/models/Student';
 import User from '@/models/User';
+import { withInstitutionScope } from '@/lib/tenant';
 
 // GET current student profile
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Get session
     const session = await auth();
@@ -19,8 +21,15 @@ export async function GET(request: NextRequest) {
 
     await connectDB();
 
+    const institutionId =
+      (session.user as any).institutionId ||
+      process.env.DEFAULT_INSTITUTION_ID ||
+      'default-institution';
+
     // Find the user
-    const user = await User.findById(session.user.id).select('-password');
+    const user = await User.findOne(
+      withInstitutionScope({ _id: session.user.id }, institutionId)
+    ).select('-password');
 
     if (!user) {
       return NextResponse.json(
@@ -38,7 +47,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Find the student record
-    const student: any = await Student.findOne({ userId: user._id }).lean();
+    const student: any = await Student.findOne(
+      withInstitutionScope({ userId: user._id }, institutionId)
+    ).lean();
 
     if (!student) {
       return NextResponse.json(

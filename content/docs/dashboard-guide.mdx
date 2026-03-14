@@ -1,0 +1,476 @@
+---
+title: "Dashboard Guide"
+description: "Complete guide to using the AttendAI admin dashboard"
+---
+
+# Dashboard Guide
+
+Learn how to use the AttendAI admin dashboard to manage students, classes, attendance, and system settings.
+
+## Dashboard Overview
+
+The AttendAI dashboard provides a comprehensive interface for managing your attendance system.
+
+### Main Sections
+
+1. **Dashboard** - Overview and analytics
+2. **Students** - Student management
+3. **Classes** - Class management
+4. **Attendance** - Attendance records and sessions
+5. **Cameras** - Camera configuration
+6. **Reports** - Generate and download reports
+7. **Settings** - System configuration
+
+## Getting Started
+
+### First Login
+
+1. Navigate to `http://localhost:3000` or your domain
+2. Click **Sign In**
+3. Enter your credentials
+4. Complete onboarding (select role: Admin/Faculty)
+
+### Dashboard Homepage
+
+After login, you'll see:
+
+- **Today's Statistics**: Students present, attendance rate, active sessions
+- **Recent Activity**: Latest attendance records
+- **Quick Actions**: Start session, add student, generate report
+- **System Status**: AI service, cameras, database
+
+## Student Management
+
+### Adding Students
+
+#### Single Student
+
+1. Navigate to **Students** → **Add Student**
+2. Fill in details:
+   - Name
+   - Roll Number
+   - Email
+   - Department
+   - Year
+   - Photo
+3. Click **Upload Photo** to register face
+4. Click **Save Student**
+
+#### Bulk Import
+
+1. Navigate to **Students** → **Bulk Import**
+2. Download CSV template
+3. Fill student data with photo URLs
+4. Upload CSV file
+5. Review import results
+6. Fix any errors
+
+### Viewing Students
+
+**Students List**:
+- Search by name or roll number
+- Filter by department, year, or registration status
+- Sort by name, attendance rate, or last seen
+- Bulk actions: Export, delete, send notifications
+
+**Student Details**:
+- Personal information
+- Attendance history
+- Class enrollment
+- Face registration status
+- Recent detections
+
+### Editing Students
+
+1. Select student from list
+2. Click **Edit**
+3. Update information
+4. Click **Save Changes**
+
+### Face Management
+
+**Register Face**:
+1. Select student
+2. Click **Register Face**
+3. Upload photo or capture from camera
+4. Verify detection
+5. Save
+
+**Update Face**:
+1. Select student
+2. Click **Update Face**
+3. Upload new photo
+4. Confirm replacement
+
+**Test Recognition**:
+1. Select student
+2. Click **Test Recognition**
+3. Upload test photo
+4. View match confidence
+
+## Class Management
+
+### Creating Classes
+
+1. Navigate to **Classes** → **Create Class**
+2. Enter details:
+   - Class Name: "Data Structures"
+   - Code: "CS301"
+   - Department: "Computer Science"
+   - Faculty: Select from dropdown
+   - Schedule: "MWF 10:00-11:00"
+   - Room: "Building A, Room 101"
+   - Camera: Select camera
+3. Click **Create Class**
+
+### Enrolling Students
+
+**Manual Enrollment**:
+1. Select class
+2. Click **Enroll Students**
+3. Search and select students
+4. Click **Enroll Selected**
+
+**Bulk Enrollment**:
+1. Select class
+2. Click **Bulk Enroll**
+3. Upload CSV with student roll numbers
+4. Confirm enrollment
+
+### Class Schedule
+
+Set up automatic attendance sessions:
+
+1. Select class
+2. Click **Schedule**
+3. Configure:
+   - Days: Monday, Wednesday, Friday
+   - Start Time: 10:00 AM
+   - Duration: 60 minutes
+   - Camera: CAM-101
+   - Auto-start: Enabled
+4. Save schedule
+
+## Attendance Management
+
+### Starting Attendance Session
+
+**Manual Start**:
+1. Navigate to **Attendance** → **Start Session**
+2. Select class and camera
+3. Click **Start Recording**
+4. Monitor live detections
+
+**Scheduled Start**:
+- Sessions start automatically based on class schedule
+- 5 minutes before class time
+- Notification sent to admin
+
+### Monitoring Session
+
+While session is active:
+
+**Live View**:
+- Camera feed display
+- Real-time face detection boxes
+- Student name overlays
+- Confidence scores
+
+**Statistics Panel**:
+- Students detected: 45/50
+- Attendance rate: 90%
+- Average confidence: 0.87
+- Session duration: 15 minutes
+
+**Recent Detections**:
+- List of recently detected students
+- Timestamp for each detection
+- Confidence score
+- Photo thumbnail
+
+### Stopping Session
+
+1. Navigate to **Attendance** → **Active Sessions**
+2. Select session
+3. Click **Stop Recording**
+4. Review summary:
+   - Total students: 50
+   - Present: 45
+   - Absent: 5
+   - Attendance rate: 90%
+5. Confirm completion
+
+### Viewing Attendance Records
+
+**Today's Attendance**:
+- Navigate to **Attendance** → **Today**
+- View all classes and students
+- Filter by class or status
+- Quick actions: Mark present, mark absent
+
+**Date Range**:
+- Select start and end dates
+- Choose class (optional)
+- View attendance matrix
+- Export to Excel/CSV
+
+**Individual Student**:
+- Navigate to **Students** → Select student
+- View **Attendance History** tab
+- See date-wise attendance
+- View statistics and trends
+
+### Manual Corrections
+
+**Mark Present**:
+1. Find student in attendance list
+2. Click **Mark Present**
+3. Enter reason (optional)
+4. Save
+
+**Mark Absent**:
+1. Find student
+2. Click **Mark Absent**
+3. Enter reason
+4. Save
+
+**Excuse Absence**:
+1. Find student
+2. Click **Excuse**
+3. Enter reason
+4. Upload document (optional)
+5. Save
+
+## Camera Management
+
+### Adding Cameras
+
+1. Navigate to **Cameras** → **Add Camera**
+2. Enter details:
+   - Name: "Classroom 101 Entry"
+   - Location: "Building A, Room 101"
+   - RTSP URL: `rtsp://admin:password@192.168.1.100:554/stream1`
+   - Resolution: 1920x1080
+   - FPS: 30
+3. Click **Test Connection**
+4. If successful, click **Save**
+
+### Camera List
+
+View all cameras:
+- Status (Active, Inactive, Error)
+- Location
+- Last seen
+- Detection count today
+- Actions: Edit, Test, Delete
+
+### Camera Settings
+
+Configure per-camera settings:
+
+**Detection Settings**:
+- Frame rate: 1 FPS
+- Confidence threshold: 0.6
+- Detection interval: 1 second
+- Duplicate prevention: 5 minutes
+
+**Display Settings**:
+- Show bounding boxes: Enabled
+- Show confidence scores: Enabled
+- Show student names: Enabled
+
+### Live Camera Feed
+
+1. Navigate to **Cameras** → Select camera
+2. Click **View Live Feed**
+3. See real-time video stream
+4. Detected faces highlighted
+5. Student names displayed
+
+## Reports and Analytics
+
+### Generating Reports
+
+**Daily Report**:
+1. Navigate to **Reports** → **Daily**
+2. Select date and class
+3. Click **Generate**
+4. Download PDF/Excel
+
+**Weekly Report**:
+1. Select week range
+2. Select class
+3. Generate report
+4. Download
+
+**Monthly Report**:
+1. Select month and year
+2. Select class (or all classes)
+3. Generate comprehensive report
+4. Download
+
+**Custom Report**:
+1. Select date range
+2. Choose filters (class, department, etc.)
+3. Select report type
+4. Generate and download
+
+### Report Contents
+
+Reports include:
+- Student attendance matrix
+- Individual attendance percentages
+- Class-wise statistics
+- Trend analysis charts
+- Late arrivals and absences
+- Comparison with previous periods
+
+### Analytics Dashboard
+
+**Overview**:
+- Total students
+- Average attendance rate
+- Classes and sessions
+- Camera activity
+
+**Trends**:
+- Daily attendance chart
+- Weekly comparison
+- Monthly patterns
+- Year-over-year comparison
+
+**Student Analytics**:
+- Top attendance (> 95%)
+- At-risk students (< 75%)
+- Improvement/decline trends
+- Department-wise comparison
+
+**Class Analytics**:
+- Best performing classes
+- Low attendance classes
+- Time-wise patterns
+- Room-wise analysis
+
+## Settings
+
+### System Settings
+
+**General**:
+- Institution name
+- Logo upload
+- Time zone
+- Academic year
+
+**Recognition Settings**:
+- Confidence threshold: 0.6
+- Duplicate prevention window: 5 minutes
+- Frame processing rate: 1 FPS
+- Maximum detection distance: 15 feet
+
+**Attendance Settings**:
+- Auto-start sessions: Enabled
+- Late arrival threshold: 15 minutes
+- Minimum attendance for alerts: 75%
+- Session auto-stop timeout: 30 minutes
+
+**Notification Settings**:
+- Email notifications: Enabled
+- SMS notifications: Disabled
+- Push notifications: Enabled
+- Notification frequency: Real-time
+
+### User Management
+
+**Add Users**:
+1. Navigate to **Settings** → **Users**
+2. Click **Add User**
+3. Enter details and assign role:
+   - Admin: Full access
+   - Faculty: Class management
+   - Student: View only
+4. Send invitation email
+
+**Roles and Permissions**:
+- **Admin**: All features
+- **Faculty**: View/manage assigned classes only
+- **Student**: View personal attendance only
+
+### Integration Settings
+
+**API Access**:
+- Generate API tokens
+- View API usage statistics
+- Configure rate limits
+- Manage webhooks
+
+**LMS Integration**:
+- Connect to Moodle/Canvas
+- Configure sync settings
+- Test connection
+- View sync logs
+
+## Keyboard Shortcuts
+
+- `Ctrl/Cmd + K` - Quick search
+- `Ctrl/Cmd + S` - Save
+- `Ctrl/Cmd + N` - New student/class
+- `Esc` - Close modal
+- `/` - Focus search bar
+
+## Mobile App
+
+AttendAI mobile app features:
+
+- View attendance records
+- Start/stop sessions
+- Get real-time notifications
+- Manual attendance corrections
+- Camera monitoring
+- Generate reports
+
+Available on:
+- iOS App Store
+- Google Play Store
+
+## Tips and Best Practices
+
+1. **Regular Backups**: Export data weekly
+2. **Photo Quality**: Re-register students with better photos if recognition fails
+3. **Camera Maintenance**: Check camera status daily
+4. **Review Logs**: Check system logs for errors
+5. **Training**: Train faculty on system usage
+6. **Testing**: Test new semester before classes start
+7. **Updates**: Keep system updated
+
+## Troubleshooting
+
+### Common Issues
+
+**Cannot log in**:
+- Check credentials
+- Clear browser cache
+- Try incognito mode
+- Reset password
+
+**Student not showing in list**:
+- Check filters
+- Refresh page
+- Verify student is registered
+
+**Session won't start**:
+- Check camera status
+- Verify AI service is running
+- Check class schedule
+- Review error logs
+
+**Poor recognition**:
+- Check camera angle
+- Verify lighting conditions
+- Re-register student faces
+- Adjust confidence threshold
+
+## Next Steps
+
+- 🔒 [Security](/docs/security) - Learn about security features
+- 🔧 [API Reference](/docs/api-reference) - Integrate with other systems
+- ❓ [FAQ](/docs/faq) - Common questions and answers

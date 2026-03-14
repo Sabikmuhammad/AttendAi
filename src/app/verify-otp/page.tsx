@@ -12,6 +12,7 @@ function VerifyOTPContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get('email') || '';
+  const institutionCode = searchParams.get('institutionCode') || '';
 
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
@@ -91,7 +92,7 @@ function VerifyOTPContent() {
       const response = await fetch('/api/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp: otpValue }),
+        body: JSON.stringify({ email, otp: otpValue, institutionCode }),
       });
 
       const data = await response.json();
@@ -106,8 +107,8 @@ function VerifyOTPContent() {
       setTimeout(() => {
         router.push('/login');
       }, 2000);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during verification');
+    } catch (err) {
+      setError((err as Error).message || 'An error occurred during verification');
     } finally {
       setIsLoading(false);
     }
@@ -122,7 +123,7 @@ function VerifyOTPContent() {
       const response = await fetch('/api/auth/resend-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, institutionCode }),
       });
 
       const data = await response.json();
@@ -135,8 +136,8 @@ function VerifyOTPContent() {
       setTimeLeft(300); // Reset timer
       setOtp(['', '', '', '', '', '']); // Clear OTP inputs
       inputRefs.current[0]?.focus();
-    } catch (err: any) {
-      setError(err.message || 'Failed to resend code');
+    } catch (err) {
+      setError((err as Error).message || 'Failed to resend code');
     } finally {
       setIsResending(false);
     }
@@ -251,7 +252,7 @@ function VerifyOTPContent() {
 
           {/* Resend */}
           <div className="text-center">
-            <p className="text-sm text-gray-600 mb-2">Didn't receive the code?</p>
+            <p className="text-sm text-gray-600 mb-2">Didn&apos;t receive the code?</p>
             <button
               onClick={handleResend}
               disabled={isResending || timeLeft <= 0}

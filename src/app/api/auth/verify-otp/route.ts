@@ -1,18 +1,21 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import User from '@/models/User';
 import OTP from '@/models/OTP';
+import Institution from '@/models/Institution';
 import { sendWelcomeEmail } from '@/lib/email';
+import { withInstitutionScope } from '@/lib/tenant';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, otp } = body;
+    const { email, otp, institutionCode } = body;
 
     // Validation
-    if (!email || !otp) {
+    if (!email || !otp || !institutionCode) {
       return NextResponse.json(
-        { success: false, error: 'Email and OTP are required' },
+        { success: false, error: 'email, otp, and institutionCode are required' },
         { status: 400 }
       );
     }
@@ -26,10 +29,22 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
+    const institution = await Institution.findOne({
+      code: String(institutionCode).toUpperCase(),
+    }).lean<{ _id: string }>();
+
+    if (!institution) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid institution code' },
+        { status: 400 }
+      );
+    }
+
+    const institutionId = String(institution._id);
+
     // Find OTP
     const otpRecord = await OTP.findOne({
-      email: email.toLowerCase(),
-      otp,
+      ...withInstitutionScope({ email: email.toLowerCase(), otp }, institutionId),
     });
 
     if (!otpRecord) {
@@ -49,7 +64,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Find and verify user
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = await User.findOne(
+      withInstitutionScope({ email: email.toLowerCase() }, institutionId)
+    );
 
     if (!user) {
       return NextResponse.json(

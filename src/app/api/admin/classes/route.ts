@@ -1,11 +1,14 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Class from '@/models/Class';
+import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
 
 // GET all classes for admin dashboard
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
+    const tenant = await getTenantContext(request);
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
@@ -13,7 +16,7 @@ export async function GET(request: NextRequest) {
     const facultyId = searchParams.get('facultyId');
 
     // Build filter
-    const filter: any = {};
+    const filter: any = withInstitutionScope({}, tenant.institutionId);
     if (status) filter.status = status;
     if (department) filter.department = department;
     if (facultyId) filter.facultyId = facultyId;

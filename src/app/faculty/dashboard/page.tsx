@@ -23,6 +23,7 @@ interface Class {
   startTime: string;
   endTime: string;
   status: 'scheduled' | 'active' | 'completed' | 'cancelled';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   studentIds: any[];
 }
 
@@ -79,67 +80,67 @@ export default function FacultyDashboard() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">My Classes</h1>
-        <p className="text-gray-600 mt-1">Manage and monitor your class schedule</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Classes</h1>
+        <p className="text-sm sm:text-base text-gray-600 mt-1">Manage and monitor your class schedule</p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="p-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <Card className="p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Classes</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">{stats.total}</p>
+              <p className="text-xs sm:text-sm font-medium text-gray-600">Total Classes</p>
+              <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-2">{stats.total}</p>
             </div>
-            <div className="bg-purple-500/10 text-purple-600 p-4 rounded-xl">
-              <Calendar className="w-6 h-6" />
+            <div className="bg-purple-500/10 text-purple-600 p-3 sm:p-4 rounded-xl">
+              <Calendar className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
           </div>
         </Card>
 
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Scheduled</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">{stats.scheduled}</p>
+              <p className="text-xs sm:text-sm font-medium text-gray-600">Scheduled</p>
+              <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-2">{stats.scheduled}</p>
             </div>
-            <div className="bg-blue-500/10 text-blue-600 p-4 rounded-xl">
-              <Clock className="w-6 h-6" />
+            <div className="bg-blue-500/10 text-blue-600 p-3 sm:p-4 rounded-xl">
+              <Clock className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
           </div>
         </Card>
 
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Active Now</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">{stats.active}</p>
+              <p className="text-xs sm:text-sm font-medium text-gray-600">Active Now</p>
+              <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-2">{stats.active}</p>
             </div>
-            <div className="bg-green-500/10 text-green-600 p-4 rounded-xl">
-              <Users className="w-6 h-6" />
+            <div className="bg-green-500/10 text-green-600 p-3 sm:p-4 rounded-xl">
+              <Users className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
           </div>
         </Card>
 
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Completed</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">{stats.completed}</p>
+              <p className="text-xs sm:text-sm font-medium text-gray-600">Completed</p>
+              <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-2">{stats.completed}</p>
             </div>
-            <div className="bg-gray-500/10 text-gray-600 p-4 rounded-xl">
-              <Calendar className="w-6 h-6" />
+            <div className="bg-gray-500/10 text-gray-600 p-3 sm:p-4 rounded-xl">
+              <Calendar className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
           </div>
         </Card>
       </div>
 
       {/* Filters */}
-      <Card className="p-4">
-        <div className="flex gap-2">
+      <Card className="p-3 sm:p-4">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant={filter === 'all' ? 'default' : 'outline'}
             onClick={() => setFilter('all')}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Class from '@/models/Class';
+import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
 
 // GET single class
 export async function GET(
@@ -9,9 +10,10 @@ export async function GET(
 ) {
   try {
     await connectDB();
+    const tenant = await getTenantContext(req);
 
     const { id } = await params;
-    const classData = await Class.findById(id)
+    const classData = await Class.findOne(withInstitutionScope({ _id: id }, tenant.institutionId))
       .populate('studentIds', 'name registerNumber department')
       .lean();
 
@@ -36,12 +38,13 @@ export async function PATCH(
 ) {
   try {
     await connectDB();
+    const tenant = await getTenantContext(req);
 
     const { id } = await params;
     const body = await req.json();
 
-    const updatedClass = await Class.findByIdAndUpdate(
-      id,
+    const updatedClass = await Class.findOneAndUpdate(
+      withInstitutionScope({ _id: id }, tenant.institutionId),
       { $set: body },
       { new: true, runValidators: true }
     );
@@ -71,9 +74,12 @@ export async function DELETE(
 ) {
   try {
     await connectDB();
+    const tenant = await getTenantContext(req);
 
     const { id } = await params;
-    const deletedClass = await Class.findByIdAndDelete(id);
+    const deletedClass = await Class.findOneAndDelete(
+      withInstitutionScope({ _id: id }, tenant.institutionId)
+    );
 
     if (!deletedClass) {
       return NextResponse.json({ error: 'Class not found' }, { status: 404 });

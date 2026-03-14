@@ -14,6 +14,7 @@ interface AnalyticsData {
 
 export default function SystemAnalytics() {
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('week');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [loading, setLoading] = useState(true);
 
   // Mock data - in production, fetch from API

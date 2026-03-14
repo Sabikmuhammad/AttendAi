@@ -1,13 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { connectDB } from '@/lib/mongodb';
 import Class from '@/models/Class';
 import Attendance from '@/models/Attendance';
 import Student from '@/models/Student';
 import User from '@/models/User';
+import { withInstitutionScope } from '@/lib/tenant';
 
 // GET statistics for current student
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Get session
     const session = await auth();
@@ -21,8 +23,15 @@ export async function GET(request: NextRequest) {
 
     await connectDB();
 
+    const institutionId =
+      (session.user as any).institutionId ||
+      process.env.DEFAULT_INSTITUTION_ID ||
+      'default-institution';
+
     // Find the user
-    const user = await User.findById(session.user.id);
+    const user = await User.findOne(
+      withInstitutionScope({ _id: session.user.id }, institutionId)
+    );
 
     if (!user) {
       return NextResponse.json(
@@ -40,7 +49,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Find the student record
-    const student: any = await Student.findOne({ userId: user._id }).lean();
+    const student: any = await Student.findOne(
+      withInstitutionScope({ userId: user._id }, institutionId)
+    ).lean();
 
     if (!student) {
       return NextResponse.json(
@@ -50,16 +61,20 @@ export async function GET(request: NextRequest) {
     }
 
     // Get total enrolled classes
-    const totalClasses = await Class.countDocuments({ 
-      studentIds: student._id,
-      status: { $in: ['completed', 'active'] }
-    });
+    const totalClasses = await Class.countDocuments(
+      withInstitutionScope(
+        {
+          studentIds: student._id,
+          status: { $in: ['completed', 'active'] },
+        },
+        institutionId
+      )
+    );
 
     // Get total attendance records
-    const attendedClasses = await Attendance.countDocuments({ 
-      studentId: student._id,
-      status: 'present'
-    });
+    const attendedClasses = await Attendance.countDocuments(
+      withInstitutionScope({ studentId: student._id, status: 'present' }, institutionId)
+    );
 
     // Get today's classes
     const todayStart = new Date();
@@ -67,13 +82,18 @@ export async function GET(request: NextRequest) {
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    const todayClasses = await Class.find({
-      studentIds: student._id,
-      startTime: {
-        $gte: todayStart,
-        $lte: todayEnd,
-      },
-    })
+    const todayClasses = await Class.find(
+      withInstitutionScope(
+        {
+          studentIds: student._id,
+          startTime: {
+            $gte: todayStart,
+            $lte: todayEnd,
+          },
+        },
+        institutionId
+      )
+    )
       .populate('facultyId', 'name')
       .sort({ startTime: 1 })
       .lean();
@@ -84,9 +104,9 @@ export async function GET(request: NextRequest) {
       : '0.0';
 
     // Get subject-wise attendance
-    const attendanceRecords = await Attendance.find({ 
-      studentId: student._id 
-    })
+    const attendanceRecords = await Attendance.find(
+      withInstitutionScope({ studentId: student._id }, institutionId)
+    )
       .populate('classId', 'courseName')
       .lean();
 

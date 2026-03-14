@@ -9,11 +9,28 @@ const FacultySchema = new mongoose.Schema({
   facultyId: {
     type: String,
     required: true,
-    unique: true,
+  },
+  institutionId: {
+    type: String,
+    required: true,
+    default: () => process.env.DEFAULT_INSTITUTION_ID || 'default-institution',
+    index: true,
+  },
+  departmentId: {
+    type: String,
+    required: false,
   },
   department: {
     type: String,
     required: true,
+  },
+  section: {
+    type: String,
+    required: false,
+  },
+  semester: {
+    type: String,
+    required: false,
   },
   designation: {
     type: String,
@@ -33,5 +50,7 @@ FacultySchema.pre('save', function(next) {
   this.updatedAt = new Date();
   next();
 });
+
+FacultySchema.index({ institutionId: 1, facultyId: 1 }, { unique: true });
 
 export default mongoose.models.Faculty || mongoose.model('Faculty', FacultySchema);

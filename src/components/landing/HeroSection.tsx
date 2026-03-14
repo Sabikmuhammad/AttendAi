@@ -112,7 +112,7 @@ export function HeroSection() {
             transition={{ duration: 0.8, delay: 0.5 }}
             className="relative pt-16 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto"
           >
-            {floatingCards.map((card, index) => (
+            {floatingCards.map((card) => (
               <motion.div
                 key={card.text}
                 initial={{ opacity: 0, y: 20 }}

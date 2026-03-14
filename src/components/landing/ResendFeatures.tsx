@@ -50,31 +50,31 @@ export function ResendFeatures() {
         />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-20">
-          <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4">
+        <div className="text-center mb-12 sm:mb-16 lg:mb-20">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4">
             Powerful Features
           </h2>
-          <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg text-gray-400 max-w-2xl mx-auto px-4">
             Everything you need to automate attendance tracking with AI-powered facial recognition
           </p>
         </div>
 
         {/* Features Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           {features.map((feature, index) => (
             <div
               key={index}
-              className="group p-8 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-300"
+              className="group p-6 sm:p-8 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-300"
             >
-              <div className="w-12 h-12 rounded-lg bg-purple-600/20 flex items-center justify-center mb-6 group-hover:bg-purple-600/30 transition-colors">
-                <feature.icon className="w-6 h-6 text-purple-400" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-purple-600/20 flex items-center justify-center mb-4 sm:mb-6 group-hover:bg-purple-600/30 transition-colors">
+                <feature.icon className="w-5 h-5 sm:w-6 sm:h-6 text-purple-400" />
               </div>
-              <h3 className="text-xl font-semibold text-white mb-3">
+              <h3 className="text-lg sm:text-xl font-semibold text-white mb-2 sm:mb-3">
                 {feature.title}
               </h3>
-              <p className="text-gray-400 leading-relaxed">
+              <p className="text-sm sm:text-base text-gray-400 leading-relaxed">
                 {feature.description}
               </p>
             </div>

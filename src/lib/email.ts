@@ -83,13 +83,13 @@ export async function sendOTPEmail({ email, otp, name }: SendOTPEmailParams) {
 
     if (error) {
       console.error('Resend email error:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: (error as { message?: string }).message };
     }
 
     return { success: true, data };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Failed to send OTP email:', error);
-    return { success: false, error: error.message || 'Failed to send email' };
+    return { success: false, error: (error as Error).message || 'Failed to send email' };
   }
 }
 
@@ -144,12 +144,12 @@ export async function sendWelcomeEmail({ email, name }: { email: string; name: s
 
     if (error) {
       console.error('Resend email error:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: (error as { message?: string }).message };
     }
 
     return { success: true, data };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Failed to send welcome email:', error);
-    return { success: false, error: error.message || 'Failed to send email' };
+    return { success: false, error: (error as Error).message || 'Failed to send email' };
   }
 }

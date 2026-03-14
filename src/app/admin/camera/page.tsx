@@ -1,12 +1,19 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 'use client';
 
 /**
- * Admin Camera Monitoring Page
+ * Admin Camera Control Page
  * 
  * Route: /admin/camera
  * 
- * Allows admins to manually start webcam monitoring for development mode.
- * In production, monitoring starts automatically via RTSP streams.
+ * Purpose:
+ * - Manual control for WEBCAM monitoring (development mode)
+ * - CCTV cameras (production mode) start AUTOMATICALLY and don't need this page
+ * 
+ * Use this page to:
+ * - Start/stop webcam monitoring for development/testing
+ * - View current monitoring status
+ * - Check attendance statistics
  */
 
 import { useState, useEffect } from 'react';
@@ -14,6 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
 
 interface Class {
   _id: string;
@@ -192,11 +200,25 @@ export default function AdminCameraPage() {
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">Camera Monitoring</h1>
+        <h1 className="text-3xl font-bold">Camera Control</h1>
         <p className="text-muted-foreground mt-2">
-          Monitor classroom attendance using webcam (development mode)
+          Manual webcam control for development and testing
         </p>
       </div>
+
+      {/* Info Alert */}
+      <Alert className="mb-6 border-blue-200 bg-blue-50">
+        <Info className="w-4 h-4 text-blue-600" />
+        <AlertDescription className="text-blue-800">
+          <div className="space-y-2">
+            <p><strong>📹 Webcam Mode (Development):</strong> Use this page to manually start/stop webcam monitoring for testing.</p>
+            <p><strong>📷 CCTV Mode (Production):</strong> CCTV cameras start <strong>automatically</strong> when class begins - no manual action needed. Configure RTSP URL when creating a class.</p>
+            <p className="text-xs pt-2 border-t border-blue-200 mt-2">
+              View all active monitoring sessions on the <a href="/admin/live-feed" className="underline font-semibold">Live Feed</a> page.
+            </p>
+          </div>
+        </AlertDescription>
+      </Alert>
 
       {/* Class Selection */}
       <Card className="mb-6">
@@ -348,7 +370,7 @@ export default function AdminCameraPage() {
             </div>
             <div className="flex items-start gap-2">
               <span className="text-lg">2️⃣</span>
-              <p>Click "Start Monitoring" to activate the webcam</p>
+              <p>Click &ldquo;Start Monitoring&rdquo; to activate the webcam</p>
             </div>
             <div className="flex items-start gap-2">
               <span className="text-lg">3️⃣</span>

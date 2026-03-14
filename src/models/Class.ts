@@ -9,6 +9,17 @@ const ClassSchema = new mongoose.Schema({
     type: String,
     required: false,
   },
+  institutionId: {
+    type: String,
+    required: true,
+    default: () => process.env.DEFAULT_INSTITUTION_ID || 'default-institution',
+    index: true,
+  },
+  classroomId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Classroom',
+    required: false,
+  },
   section: {
     type: String,
     required: false,
@@ -52,6 +63,21 @@ const ClassSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Student',
   }],
+  monitoringMode: {
+    type: String,
+    enum: ['development', 'production'],
+    default: 'development',
+    required: false,
+  },
+  rtspUrl: {
+    type: String,
+    required: false,
+  },
+  autoMonitoring: {
+    type: Boolean,
+    default: false,
+    required: false,
+  },
   status: {
     type: String,
     enum: ['scheduled', 'active', 'completed', 'cancelled'],
@@ -71,5 +97,7 @@ ClassSchema.pre('save', function(next) {
   this.updatedAt = new Date();
   next();
 });
+
+ClassSchema.index({ institutionId: 1, startTime: -1 });
 
 export default mongoose.models.Class || mongoose.model('Class', ClassSchema);

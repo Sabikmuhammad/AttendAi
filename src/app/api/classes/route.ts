@@ -1,17 +1,20 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Class from '@/models/Class';
+import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
 
 // GET all classes
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
+    const tenant = await getTenantContext(req);
 
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
     const department = searchParams.get('department');
 
-    const filter: any = {};
+    const filter: any = withInstitutionScope({}, tenant.institutionId);
     if (status) filter.status = status;
     if (department) filter.department = department;
 
@@ -34,6 +37,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
+    const tenant = await getTenantContext(req);
 
     const body = await req.json();
     const {
@@ -81,6 +85,7 @@ export async function POST(req: NextRequest) {
       facultyId,
       facultyName,
       department,
+      institutionId: tenant.institutionId,
       startTime: new Date(startTime),
       endTime: new Date(endTime),
       studentIds,

@@ -1,0 +1,344 @@
+---
+title: "Camera Setup"
+description: "Guide to setting up CCTV cameras for AttendAI"
+---
+
+# Camera Setup
+
+This guide explains how to connect and configure CCTV cameras with AttendAI for optimal face detection and recognition.
+
+## Camera Requirements
+
+### Supported Camera Types
+
+AttendAI works with any IP camera that supports RTSP (Real-Time Streaming Protocol):
+
+- ✅ **Network IP Cameras** (e.g., Hikvision, Dahua, TP-Link)
+- ✅ **PTZ Cameras** (Pan-Tilt-Zoom)
+- ✅ **WiFi Cameras**
+- ✅ **USB Webcams** (with RTSP converter)
+- ❌ Analog CCTV cameras (requires IP converter)
+
+### Technical Specifications
+
+**Minimum**:
+- Resolution: 720p (1280x720)
+- Frame rate: 15 FPS
+- Protocol: RTSP support
+- Network: WiFi or Ethernet connection
+
+**Recommended**:
+- Resolution: 1080p (1920x1080) or higher
+- Frame rate: 30 FPS
+- Protocol: RTSP with H.264 encoding
+- Network: Wired Ethernet (more stable)
+- Features: Auto-focus, WDR (Wide Dynamic Range), IR night vision
+
+## Camera Placement
+
+### Optimal Positioning
+
+For best face detection results:
+
+1. **Height**: Mount cameras 5-6 feet from ground (face level)
+2. **Angle**: Position at 10-15° downward angle
+3. **Distance**: 6-15 feet from entry points
+4. **Coverage**: Ensure clear view of entry/exit points
+5. **Lighting**: Avoid backlighting and direct sunlight
+
+### Recommended Locations
+
+**Classroom Entry**:
+- Mount above door frame facing inward
+- Captures faces as students enter
+- 8-10 feet from doorway
+
+**Classroom Front**:
+- Mount at front of classroom facing students
+- Captures periodic attendance checks
+- Wide-angle lens recommended
+
+**Hallway**:
+- Mount at hallway intersections
+- Captures movement between classes
+- Multiple cameras for long hallways
+
+### What to Avoid
+
+❌ **Backlighting**: Windows behind subjects create silhouettes  
+❌ **Extreme Angles**: Top-down views make face recognition difficult  
+❌ **Low Light**: Poor lighting reduces accuracy  
+❌ **Obstructions**: Pillars, plants, or furniture blocking view  
+❌ **High Traffic**: Overcrowded areas cause motion blur  
+
+## Getting RTSP URL
+
+### Method 1: Camera Manual
+
+Check your camera's manual for RTSP URL format:
+
+**Common Formats**:
+
+```
+Hikvision:
+rtsp://admin:password@192.168.1.100:554/Streaming/Channels/101
+
+Dahua:
+rtsp://admin:password@192.168.1.100:554/cam/realmonitor?channel=1&subtype=0
+
+TP-Link:
+rtsp://admin:password@192.168.1.100:554/stream1
+
+Generic:
+rtsp://username:password@camera-ip:port/path
+```
+
+### Method 2: Camera Software
+
+Most cameras come with configuration software:
+
+1. Install camera software (IVMS, SmartPSS, etc.)
+2. Find camera on network
+3. Access camera settings
+4. Locate "Network" or "Streaming" section
+5. Note down RTSP URL and credentials
+
+### Method 3: ONVIF Discovery
+
+Use ONVIF device manager to discover cameras:
+
+1. Download ONVIF Device Manager
+2. Scan network for cameras
+3. Select your camera
+4. Navigate to "Media" → "Stream URIs"
+5. Copy RTSP URL
+
+## Camera Configuration
+
+### Network Setup
+
+#### WiFi Configuration
+
+1. Connect camera to power
+2. Use camera app or WPS button to connect to WiFi
+3. Note camera IP address from router or camera app
+4. Ensure camera is on same network as AttendAI server
+
+#### Ethernet Configuration
+
+1. Connect camera to network switch/router via Ethernet
+2. Camera will auto-obtain IP via DHCP
+3. Find camera IP from router admin panel
+4. (Optional) Assign static IP for stability
+
+### Video Settings
+
+Configure camera for optimal performance:
+
+**Resolution**: 1080p (1920x1080)  
+**Frame Rate**: 30 FPS  
+**Bitrate**: 2-4 Mbps (H.264)  
+**Encoding**: H.264 (preferred) or H.265  
+**Profile**: Main or High  
+
+### Security Settings
+
+1. **Change Default Password**: Use strong, unique passwords
+2. **Enable HTTPS**: For web interface access
+3. **Disable UPnP**: Prevent unauthorized access
+4. **Update Firmware**: Keep camera software up-to-date
+5. **Network Isolation**: Use VLAN for camera network
+
+## Adding Cameras to AttendAI
+
+### Via Dashboard
+
+1. Log in to AttendAI dashboard
+2. Navigate to **Settings** → **Cameras**
+3. Click **Add Camera**
+4. Fill in camera details:
+
+```
+Name: Classroom 101 - Entry
+Location: Building A, Room 101
+RTSP URL: rtsp://admin:password@192.168.1.100:554/stream1
+Resolution: 1920x1080
+FPS: 30
+Status: Active
+```
+
+5. Click **Test Connection** to verify
+6. Click **Save**
+
+### Via Configuration File
+
+Edit `ai-service/config.json`:
+
+```json
+{
+  "cameras": [
+    {
+      "id": "cam-101",
+      "name": "Classroom 101 - Entry",
+      "rtsp_url": "rtsp://admin:password@192.168.1.100:554/stream1",
+      "location": "Building A, Room 101",
+      "enabled": true,
+      "detection_interval": 1.0,
+      "confidence_threshold": 0.6
+    },
+    {
+      "id": "cam-102",
+      "name": "Classroom 102 - Entry",
+      "rtsp_url": "rtsp://admin:password@192.168.1.101:554/stream1",
+      "location": "Building A, Room 102",
+      "enabled": true,
+      "detection_interval": 1.0,
+      "confidence_threshold": 0.6
+    }
+  ]
+}
+```
+
+Restart AI service:
+
+```bash
+cd ai-service
+python main.py
+```
+
+## Testing Camera Connection
+
+### Method 1: VLC Media Player
+
+1. Open VLC Media Player
+2. Go to **Media** → **Open Network Stream**
+3. Enter RTSP URL
+4. Click **Play**
+
+If video plays, RTSP URL is correct.
+
+### Method 2: FFmpeg
+
+```bash
+ffmpeg -i "rtsp://admin:password@192.168.1.100:554/stream1" \
+  -frames:v 1 test.jpg
+```
+
+If image is saved, connection is successful.
+
+### Method 3: AttendAI Health Check
+
+```bash
+curl http://localhost:8000/cameras/test \
+  -H "Content-Type: application/json" \
+  -d '{
+    "rtsp_url": "rtsp://admin:password@192.168.1.100:554/stream1"
+  }'
+```
+
+Response:
+```json
+{
+  "status": "success",
+  "connected": true,
+  "resolution": "1920x1080",
+  "fps": 30
+}
+```
+
+## Troubleshooting
+
+### Camera Not Detected
+
+**Problem**: Cannot connect to camera
+
+**Solutions**:
+1. Verify camera is powered on
+2. Check network connectivity (`ping camera-ip`)
+3. Verify RTSP URL format
+4. Check credentials (username/password)
+5. Ensure port 554 is not blocked by firewall
+6. Try different RTSP paths (check camera manual)
+
+### Poor Face Detection
+
+**Problem**: Faces not being detected
+
+**Solutions**:
+1. Improve lighting conditions
+2. Adjust camera angle (avoid top-down view)
+3. Move camera closer to subjects
+4. Increase camera resolution
+5. Clean camera lens
+6. Check for motion blur (increase frame rate)
+
+### Video Lag
+
+**Problem**: Delayed or stuttering video
+
+**Solutions**:
+1. Use wired Ethernet instead of WiFi
+2. Reduce camera bitrate
+3. Use H.264 instead of H.265
+4. Check network bandwidth
+5. Reduce number of simultaneous camera streams
+6. Use dedicated network for cameras
+
+### Authentication Failed
+
+**Problem**: RTSP authentication error
+
+**Solutions**:
+1. Verify username and password
+2. Check for special characters in credentials (URL encode)
+3. Reset camera to factory defaults
+4. Update camera firmware
+5. Try different authentication methods
+
+## Best Practices
+
+1. **Regular Maintenance**: Clean camera lenses monthly
+2. **Firmware Updates**: Keep cameras updated
+3. **Monitor Performance**: Check camera uptime and connection quality
+4. **Backup Configuration**: Save camera settings
+5. **Security Audits**: Review access logs and credentials quarterly
+6. **Network Monitoring**: Monitor bandwidth usage
+7. **Testing**: Periodically test face detection accuracy
+
+## Camera Recommendations
+
+### Budget-Friendly Options
+
+- **TP-Link Tapo C200**: $30-40
+  - 1080p, WiFi, Pan/Tilt, Night Vision
+  - Good for small classrooms
+
+- **Wyze Cam v3**: $35-45
+  - 1080p, Color Night Vision, Weather Resistant
+  - Great value for money
+
+### Professional Options
+
+- **Hikvision DS-2CD2143G0-I**: $100-150
+  - 4MP, PoE, WDR, IR 30m
+  - Excellent for large classrooms
+
+- **Dahua IPC-HDBW4631R-ZS**: $120-180
+  - 6MP, Varifocal, Starlight, IVS
+  - Best for variable lighting conditions
+
+### Enterprise Solutions
+
+- **Axis P3245-LVE**: $500-700
+  - 2MP, Wide Dynamic Range, Lightfinder
+  - Professional-grade, indoor/outdoor
+
+- **Bosch Dinion IP Starlight 7000 HD**: $800-1000
+  - Exceptional low-light performance
+  - Ideal for 24/7 surveillance
+
+## Next Steps
+
+- 👤 [Face Registration](/docs/face-registration) - Register students for recognition
+- 🔄 [Attendance Workflow](/docs/attendance-workflow) - Start recording attendance
+- 🔒 [Security](/docs/security) - Secure your camera network

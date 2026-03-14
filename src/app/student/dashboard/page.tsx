@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -152,22 +153,22 @@ export default function StudentDashboard() {
   const attendancePercent = parseFloat(stats?.attendancePercentage || '0');
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Welcome Section */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
           Welcome back, {student?.name?.split(' ')[0]}! 👋
         </h1>
-        <p className="text-gray-600 mt-1">Here's your attendance overview</p>
+        <p className="text-sm sm:text-base text-gray-600 mt-1">Here&apos;s your attendance overview</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Left Column - Profile & Stats */}
-        <div className="lg:col-span-1 space-y-6">
+        <div className="lg:col-span-1 space-y-4 sm:space-y-6">
           {/* Student Profile Card */}
-          <Card className="p-6">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+          <Card className="p-4 sm:p-6">
+            <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
                 {student?.imageUrl ? (
                   <img 
                     src={student.imageUrl} 
@@ -175,12 +176,12 @@ export default function StudentDashboard() {
                     className="w-full h-full rounded-full object-cover"
                   />
                 ) : (
-                  <User className="w-8 h-8 text-white" />
+                  <User className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                 )}
               </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">{student?.name}</h3>
-                <p className="text-sm text-gray-600">{student?.registerNumber}</p>
+              <div className="min-w-0">
+                <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{student?.name}</h3>
+                <p className="text-xs sm:text-sm text-gray-600">{student?.registerNumber}</p>
               </div>
             </div>
 
@@ -205,22 +206,22 @@ export default function StudentDashboard() {
           </Card>
 
           {/* Attendance Overview */}
-          <Card className="p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-blue-600" />
+          <Card className="p-4 sm:p-6">
+            <div className="flex items-center gap-3 mb-4 sm:mb-6">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
               </div>
-              <h3 className="font-semibold text-gray-900">Attendance Overview</h3>
+              <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Attendance Overview</h3>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {/* Overall Attendance */}
-              <div className="text-center py-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600 mb-2">Overall Attendance</p>
-                <p className={`text-4xl font-bold ${getAttendanceColor(attendancePercent)}`}>
+              <div className="text-center py-3 sm:py-4 bg-gray-50 rounded-lg">
+                <p className="text-xs sm:text-sm text-gray-600 mb-2">Overall Attendance</p>
+                <p className={`text-3xl sm:text-4xl font-bold ${getAttendanceColor(attendancePercent)}`}>
                   {stats?.attendancePercentage}%
                 </p>
-                <div className="mt-4 flex items-center justify-center gap-4 text-sm">
+                <div className="mt-3 sm:mt-4 flex items-center justify-center gap-3 sm:gap-4 text-xs sm:text-sm">
                   <div>
                     <p className="text-gray-600">Attended</p>
                     <p className="font-semibold text-gray-900">{stats?.attendedClasses}</p>
@@ -236,8 +237,8 @@ export default function StudentDashboard() {
               {/* Attendance Status */}
               <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
                 <div className="flex items-center gap-2">
-                  <Award className="w-5 h-5 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-900">
+                  <Award className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+                  <span className="text-xs sm:text-sm font-medium text-blue-900">
                     {attendancePercent >= 75 ? 'Great Job!' : 
                      attendancePercent >= 60 ? 'Keep it up!' : 
                      'Needs Improvement'}
@@ -260,7 +261,7 @@ export default function StudentDashboard() {
                 <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
                   <Calendar className="w-5 h-5 text-purple-600" />
                 </div>
-                <h3 className="font-semibold text-gray-900">Today's Classes</h3>
+                <h3 className="font-semibold text-gray-900">Today&apos;s Classes</h3>
               </div>
               <Badge variant="outline">
                 {stats?.todayClasses?.length || 0} classes

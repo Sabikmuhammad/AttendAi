@@ -25,7 +25,7 @@ export function ResendNavbar() {
               Features
             </Link>
             <Link 
-              href="#docs" 
+              href="/docs" 
               className="text-sm text-gray-400 hover:text-white transition-colors"
             >
               Docs
@@ -80,7 +80,7 @@ export function ResendNavbar() {
                 Features
               </Link>
               <Link 
-                href="#docs" 
+                href="/docs" 
                 className="text-sm text-gray-400 hover:text-white transition-colors"
                 onClick={() => setIsOpen(false)}
               >

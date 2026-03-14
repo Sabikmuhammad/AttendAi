@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { connectDB } from '@/lib/mongodb';
 import User from '@/models/User';
 import Faculty from '@/models/Faculty';
 import Student from '@/models/Student';
+import { withInstitutionScope } from '@/lib/tenant';
 
 export async function GET() {
   try {
@@ -19,8 +21,15 @@ export async function GET() {
 
     await connectDB();
 
+    const institutionId =
+      (session.user as any).institutionId ||
+      process.env.DEFAULT_INSTITUTION_ID ||
+      'default-institution';
+
     // Fetch user data
-    const user = await User.findById(session.user.id).select('-password');
+    const user = await User.findOne(
+      withInstitutionScope({ _id: session.user.id }, institutionId)
+    ).select('-password');
     
     if (!user) {
       return NextResponse.json(
@@ -42,14 +51,18 @@ export async function GET() {
 
     // Fetch role-specific data
     if (user.role === 'faculty') {
-      const faculty = await Faculty.findOne({ userId: user._id });
+      const faculty = await Faculty.findOne(
+        withInstitutionScope({ userId: user._id }, institutionId)
+      );
       if (faculty) {
         profileData.facultyId = faculty.facultyId;
         profileData.department = faculty.department;
         profileData.designation = faculty.designation || 'Not Set';
       }
     } else if (user.role === 'student') {
-      const student = await Student.findOne({ userId: user._id });
+      const student = await Student.findOne(
+        withInstitutionScope({ userId: user._id }, institutionId)
+      );
       if (student) {
         profileData.studentId = student.studentId;
         profileData.department = student.department;

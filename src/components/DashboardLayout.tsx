@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { Navbar } from './Navbar';
 
@@ -24,18 +25,37 @@ export function DashboardLayout({
   subtitle,
   sidebarTitle,
 }: DashboardLayoutProps) {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Fixed Sidebar */}
-      <Sidebar navItems={navItems} title={sidebarTitle} />
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <Sidebar 
+        navItems={navItems} 
+        title={sidebarTitle}
+        isMobileMenuOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+      />
       
       {/* Main Content Area */}
-      <div className="pl-64">
+      <div className="lg:pl-64">
         {/* Sticky Navbar */}
-        <Navbar title={title} subtitle={subtitle} />
+        <Navbar 
+          title={title} 
+          subtitle={subtitle}
+          onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        />
         
         {/* Page Content */}
-        <main className="p-8">
+        <main className="p-4 sm:p-6 lg:p-8">
           <div className="max-w-[1600px] mx-auto">
             {children}
           </div>

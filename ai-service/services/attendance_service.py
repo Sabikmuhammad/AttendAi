@@ -69,6 +69,10 @@ class AttendanceMonitor:
         self.total_detections = 0
         self.total_recognitions = 0
         
+        # Frame and detection storage for streaming
+        self.latest_frame: Optional[np.ndarray] = None
+        self.latest_detections: Optional[Dict] = None
+        
         # Monitoring task
         self._monitor_task: Optional[asyncio.Task] = None
     
@@ -193,12 +197,25 @@ class AttendanceMonitor:
                     await asyncio.sleep(1)
                     continue
                 
+                # Store latest frame for streaming
+                self.latest_frame = frame.copy()
+                
                 # Detect faces
                 face_locations, face_encodings = await self.face_detector.detect_faces_async(frame)
                 self.total_detections += len(face_locations)
                 
+                # Prepare detection data for streaming
+                detection_data = {
+                    'face_locations': face_locations,
+                    'face_count': len(face_locations),
+                    'labels': [],
+                    'confidences': [],
+                    'timestamp': datetime.utcnow().isoformat()
+                }
+                
                 if len(face_encodings) == 0:
-                    # No faces detected, wait and continue
+                    # No faces detected, update detections and continue
+                    self.latest_detections = detection_data
                     await asyncio.sleep(self.detection_interval)
                     continue
                 
@@ -206,6 +223,23 @@ class AttendanceMonitor:
                 
                 # Recognize faces
                 recognized_ids, confidence = await self.face_recognizer.recognize_faces_async(face_encodings)
+                
+                # Get student names for labels
+                labels = []
+                confidences = []
+                for i, student_id in enumerate(recognized_ids):
+                    if student_id and student_id != "Unknown":
+                        # Get student name from database
+                        student_name = await self._get_student_name(student_id)
+                        labels.append(student_name)
+                        confidences.append(confidence * 100 if confidence else 0)
+                    else:
+                        labels.append("Unknown")
+                        confidences.append(0)
+                
+                detection_data['labels'] = labels
+                detection_data['confidences'] = confidences
+                self.latest_detections = detection_data
                 
                 if not recognized_ids:
                     logger.debug("No faces recognized")
@@ -338,6 +372,43 @@ class AttendanceMonitor:
         if self.camera:
             CameraManager.release_camera(self.class_id)
             self.camera = None
+    
+    def get_latest_frame(self) -> Optional[np.ndarray]:
+        """
+        Get the latest captured frame for streaming.
+        
+        Returns:
+            Latest frame as numpy array, or None if not available
+        """
+        return self.latest_frame
+    
+    def get_latest_detections(self) -> Optional[Dict]:
+        """
+        Get the latest face detection results for overlay.
+        
+        Returns:
+            Dictionary with face_locations, labels, confidences, and timestamp
+        """
+        return self.latest_detections
+    
+    async def _get_student_name(self, student_id: str) -> str:
+        """
+        Get student name by ID.
+        
+        Args:
+            student_id: MongoDB _id of student
+            
+        Returns:
+            Student name or "Unknown Student"
+        """
+        try:
+            from utils.database import get_student_by_id
+            student = await get_student_by_id(student_id)
+            if student:
+                return student.get('name', 'Unknown Student')
+        except:
+            pass
+        return "Unknown Student"
     
     async def get_stats(self) -> Dict:
         """

@@ -1,0 +1,598 @@
+---
+title: "API Reference"
+description: "Complete REST API documentation for AttendAI"
+---
+
+# API Reference
+
+Complete reference for the AttendAI REST API. Use these endpoints to integrate AttendAI with your existing systems.
+
+## Base URL
+
+```
+Production: https://api.attendai.com/v1
+Development: http://localhost:3000/api
+```
+
+## Authentication
+
+All API requests require authentication using Bearer tokens.
+
+### Get API Token
+
+```bash
+curl -X POST http://localhost:3000/api/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@university.edu",
+    "password": "your-password"
+  }'
+```
+
+Response:
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "expiresIn": 3600
+}
+```
+
+### Using the Token
+
+Include token in Authorization header:
+
+```bash
+curl http://localhost:3000/api/students \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+## Students API
+
+### Register Student
+
+Create a new student record.
+
+**Endpoint**: `POST /api/students`
+
+**Request**:
+```bash
+curl -X POST http://localhost:3000/api/students \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "John Doe",
+    "rollNumber": "CS2024001",
+    "email": "john@university.edu",
+    "department": "Computer Science",
+    "year": 2024,
+    "photo": "base64_encoded_image_data"
+  }'
+```
+
+**Response**: `201 Created`
+```json
+{
+  "success": true,
+  "studentId": "65f8a1b2c3d4e5f6g7h8i9j0",
+  "message": "Student registered successfully",
+  "faceDetected": true,
+  "confidence": 0.95
+}
+```
+
+### Get All Students
+
+Retrieve list of all students.
+
+**Endpoint**: `GET /api/students`
+
+**Query Parameters**:
+- `page` (integer): Page number (default: 1)
+- `limit` (integer): Items per page (default: 50)
+- `department` (string): Filter by department
+- `year` (integer): Filter by year
+
+**Request**:
+```bash
+curl "http://localhost:3000/api/students?page=1&limit=10&department=Computer%20Science" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+**Response**: `200 OK`
+```json
+{
+  "students": [
+    {
+      "id": "65f8a1b2c3d4e5f6g7h8i9j0",
+      "name": "John Doe",
+      "rollNumber": "CS2024001",
+      "email": "john@university.edu",
+      "department": "Computer Science",
+      "year": 2024,
+      "registered": true,
+      "faceQuality": 0.92
+    }
+  ],
+  "total": 500,
+  "page": 1,
+  "pages": 50
+}
+```
+
+### Get Student by ID
+
+**Endpoint**: `GET /api/students/:id`
+
+**Request**:
+```bash
+curl http://localhost:3000/api/students/65f8a1b2c3d4e5f6g7h8i9j0 \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+**Response**: `200 OK`
+```json
+{
+  "id": "65f8a1b2c3d4e5f6g7h8i9j0",
+  "name": "John Doe",
+  "rollNumber": "CS2024001",
+  "email": "john@university.edu",
+  "department": "Computer Science",
+  "year": 2024,
+  "classes": ["CS301", "CS302"],
+  "attendanceRate": 0.92,
+  "lastSeen": "2026-03-12T10:05:23Z"
+}
+```
+
+### Update Student
+
+**Endpoint**: `PUT /api/students/:id`
+
+**Request**:
+```bash
+curl -X PUT http://localhost:3000/api/students/65f8a1b2c3d4e5f6g7h8i9j0 \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "John Smith",
+    "email": "jsmith@university.edu"
+  }'
+```
+
+**Response**: `200 OK`
+
+### Delete Student
+
+**Endpoint**: `DELETE /api/students/:id`
+
+**Request**:
+```bash
+curl -X DELETE http://localhost:3000/api/students/65f8a1b2c3d4e5f6g7h8i9j0 \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+**Response**: `204 No Content`
+
+## Face Recognition API
+
+### Upload Face Image
+
+Add or update student face.
+
+**Endpoint**: `POST /api/students/:id/faces`
+
+**Request**:
+```bash
+curl -X POST http://localhost:3000/api/students/CS2024001/faces \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -F "photo=@john-photo.jpg"
+```
+
+**Response**: `200 OK`
+```json
+{
+  "success": true,
+  "faceDetected": true,
+  "faceQuality": 0.89,
+  "embeddingGenerated": true
+}
+```
+
+### Verify Face
+
+Test face recognition for a student.
+
+**Endpoint**: `POST /api/students/:id/verify`
+
+**Request**:
+```bash
+curl -X POST http://localhost:3000/api/students/CS2024001/verify \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -F "photo=@test-photo.jpg"
+```
+
+**Response**: `200 OK`
+```json
+{
+  "match": true,
+  "confidence": 0.87,
+  "studentId": "65f8a1b2c3d4e5f6g7h8i9j0",
+  "name": "John Doe"
+}
+```
+
+### Detect Face
+
+Detect faces in an image.
+
+**Endpoint**: `POST /api/faces/detect`
+
+**Request**:
+```bash
+curl -X POST http://localhost:3000/api/faces/detect \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -F "photo=@classroom.jpg"
+```
+
+**Response**: `200 OK`
+```json
+{
+  "facesDetected": 5,
+  "faces": [
+    {
+      "boundingBox": {"x": 120, "y": 80, "width": 100, "height": 120},
+      "confidence": 0.95,
+      "landmarks": {}
+    }
+  ]
+}
+```
+
+## Classes API
+
+### Create Class
+
+**Endpoint**: `POST /api/classes`
+
+**Request**:
+```bash
+curl -X POST http://localhost:3000/api/classes \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Data Structures",
+    "code": "CS301",
+    "department": "Computer Science",
+    "facultyId": "faculty-001",
+    "schedule": "MWF 10:00-11:00",
+    "room": "Room 101"
+  }'
+```
+
+**Response**: `201 Created`
+```json
+{
+  "classId": "class-001",
+  "message": "Class created successfully"
+}
+```
+
+### Get All Classes
+
+**Endpoint**: `GET /api/classes`
+
+**Request**:
+```bash
+curl http://localhost:3000/api/classes \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+**Response**: `200 OK`
+```json
+{
+  "classes": [
+    {
+      "id": "class-001",
+      "name": "Data Structures",
+      "code": "CS301",
+      "facultyName": "Dr. Smith",
+      "totalStudents": 50,
+      "schedule": "MWF 10:00-11:00"
+    }
+  ]
+}
+```
+
+### Enroll Students
+
+**Endpoint**: `POST /api/classes/:id/enroll`
+
+**Request**:
+```bash
+curl -X POST http://localhost:3000/api/classes/class-001/enroll \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -d '{
+    "studentIds": ["student-001", "student-002", "student-003"]
+  }'
+```
+
+**Response**: `200 OK`
+
+## Attendance API
+
+### Start Session
+
+Begin attendance recording session.
+
+**Endpoint**: `POST /api/attendance/sessions`
+
+**Request**:
+```bash
+curl -X POST http://localhost:3000/api/attendance/sessions \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "classId": "class-001",
+    "cameraId": "cam-101",
+    "startTime": "2026-03-12T10:00:00Z",
+    "duration": 60
+  }'
+```
+
+**Response**: `201 Created`
+```json
+{
+  "sessionId": "session-12345",
+  "status": "active",
+  "startTime": "2026-03-12T10:00:00Z"
+}
+```
+
+### Stop Session
+
+**Endpoint**: `PUT /api/attendance/sessions/:id/stop`
+
+**Request**:
+```bash
+curl -X PUT http://localhost:3000/api/attendance/sessions/session-12345/stop \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+**Response**: `200 OK`
+```json
+{
+  "sessionId": "session-12345",
+  "status": "completed",
+  "studentsPresent": 45,
+  "studentsAbsent": 5,
+  "attendanceRate": 0.90
+}
+```
+
+### Get Attendance Records
+
+**Endpoint**: `GET /api/attendance`
+
+**Query Parameters**:
+- `classId` (string): Filter by class
+- `studentId` (string): Filter by student
+- `startDate` (date): Start date (YYYY-MM-DD)
+- `endDate` (date): End date (YYYY-MM-DD)
+- `status` (string): Filter by status (present, absent, late)
+
+**Request**:
+```bash
+curl "http://localhost:3000/api/attendance?classId=class-001&startDate=2026-03-01&endDate=2026-03-12" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+**Response**: `200 OK`
+```json
+{
+  "records": [
+    {
+      "id": "record-001",
+      "studentId": "student-001",
+      "studentName": "John Doe",
+      "classId": "class-001",
+      "className": "Data Structures",
+      "status": "present",
+      "timestamp": "2026-03-12T10:05:23Z",
+      "confidence": 0.92
+    }
+  ],
+  "total": 100
+}
+```
+
+### Manual Attendance
+
+Mark attendance manually.
+
+**Endpoint**: `POST /api/attendance/manual`
+
+**Request**:
+```bash
+curl -X POST http://localhost:3000/api/attendance/manual \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -d '{
+    "studentId": "student-001",
+    "classId": "class-001",
+    "status": "present",
+    "reason": "Camera issue",
+    "timestamp": "2026-03-12T10:00:00Z"
+  }'
+```
+
+**Response**: `201 Created`
+
+## Reports API
+
+### Generate Report
+
+**Endpoint**: `POST /api/reports`
+
+**Request**:
+```bash
+curl -X POST http://localhost:3000/api/reports \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -d '{
+    "type": "monthly",
+    "classId": "class-001",
+    "month": 3,
+    "year": 2026,
+    "format": "pdf"
+  }'
+```
+
+**Response**: `200 OK`
+```json
+{
+  "reportId": "report-001",
+  "downloadUrl": "https://example.com/reports/report-001.pdf",
+  "generatedAt": "2026-03-12T10:30:00Z"
+}
+```
+
+### Download Report
+
+**Endpoint**: `GET /api/reports/:id/download`
+
+## Cameras API
+
+### Get All Cameras
+
+**Endpoint**: `GET /api/cameras`
+
+**Response**: `200 OK`
+```json
+{
+  "cameras": [
+    {
+      "id": "cam-101",
+      "name": "Classroom 101 Entry",
+      "location": "Building A, Room 101",
+      "status": "active",
+      "rtspUrl": "rtsp://...",
+      "resolution": "1920x1080"
+    }
+  ]
+}
+```
+
+### Test Camera Connection
+
+**Endpoint**: `POST /api/cameras/test`
+
+**Request**:
+```bash
+curl -X POST http://localhost:3000/api/cameras/test \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -d '{
+    "rtspUrl": "rtsp://admin:password@192.168.1.100:554/stream1"
+  }'
+```
+
+**Response**: `200 OK`
+```json
+{
+  "status": "success",
+  "connected": true,
+  "resolution": "1920x1080",
+  "fps": 30
+}
+```
+
+## Webhooks
+
+Configure webhooks to receive real-time notifications.
+
+### Webhook Events
+
+- `student.registered` - New student registered
+- `attendance.marked` - Attendance recorded
+- `session.started` - Session started
+- `session.completed` - Session completed
+- `alert.low_attendance` - Low attendance detected
+
+### Webhook Payload
+
+```json
+{
+  "event": "attendance.marked",
+  "timestamp": "2026-03-12T10:05:23Z",
+  "data": {
+    "studentId": "student-001",
+    "studentName": "John Doe",
+    "classId": "class-001",
+    "confidence": 0.92
+  }
+}
+```
+
+## Error Responses
+
+### Error Format
+
+```json
+{
+  "error": {
+    "code": "STUDENT_NOT_FOUND",
+    "message": "Student with ID student-001 not found",
+    "details": {}
+  }
+}
+```
+
+### HTTP Status Codes
+
+- `200` - Success
+- `201` - Created
+- `204` - No Content
+- `400` - Bad Request
+- `401` - Unauthorized
+- `403` - Forbidden
+- `404` - Not Found
+- `429` - Too Many Requests
+- `500` - Internal Server Error
+
+### Error Codes
+
+- `INVALID_TOKEN` - Authentication token invalid or expired
+- `STUDENT_NOT_FOUND` - Student does not exist
+- `CLASS_NOT_FOUND` - Class does not exist
+- `FACE_NOT_DETECTED` - No face detected in image
+- `LOW_FACE_QUALITY` - Face quality below threshold
+- `DUPLICATE_ENTRY` - Student already registered
+- `SESSION_NOT_ACTIVE` - Attendance session not running
+- `INVALID_PARAMETERS` - Request parameters invalid
+
+## Rate Limiting
+
+API requests are rate limited:
+
+- **Free Tier**: 100 requests/hour
+- **Pro Tier**: 1000 requests/hour
+- **Enterprise**: Unlimited
+
+Rate limit headers:
+```
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1678622400
+```
+
+## SDKs and Libraries
+
+Official SDKs available:
+
+- **JavaScript/Node.js**: `npm install attendai-sdk`
+- **Python**: `pip install attendai`
+- **PHP**: `composer require attendai/sdk`
+- **Java**: Maven/Gradle packages
+
+## Next Steps
+
+- 📊 [Dashboard Guide](/docs/dashboard-guide) - Use the web interface
+- 🔒 [Security](/docs/security) - API security best practices
+- ❓ [FAQ](/docs/faq) - Common questions

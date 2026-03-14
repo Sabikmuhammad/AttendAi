@@ -1,0 +1,515 @@
+---
+title: "Frequently Asked Questions"
+description: "Common questions about AttendAI"
+---
+
+# Frequently Asked Questions
+
+Find answers to common questions about AttendAI.
+
+## General Questions
+
+### What is AttendAI?
+
+AttendAI is an AI-powered attendance system that automatically detects and records student attendance using facial recognition from CCTV cameras. It eliminates manual roll calls and provides real-time attendance tracking.
+
+### How does AttendAI work?
+
+AttendAI connects to your existing CCTV cameras, processes video streams in real-time, detects human faces, matches them against registered students, and automatically records attendance in the database.
+
+### Do I need special cameras?
+
+No. AttendAI works with any IP camera that supports RTSP protocol. You can use your existing CCTV infrastructure.
+
+### How accurate is the system?
+
+AttendAI achieves 99.9% accuracy under optimal conditions using state-of-the-art deep learning models. Accuracy depends on factors like lighting, camera quality, and student registration quality.
+
+### Is my data safe?
+
+Yes. AttendAI stores face embeddings (mathematical representations) instead of photos, uses AES-256 encryption, and complies with GDPR and privacy regulations.
+
+## Technical Questions
+
+### What are the system requirements?
+
+**Minimum**: 
+- Intel i5/Ryzen 5, 8GB RAM, 100GB Storage
+- Ubuntu 22.04 or Windows Server 2019+
+- Node.js 18+, Python 3.9+, MongoDB 5.0+
+
+**Recommended**: 
+- Intel i7/Ryzen 7, 16GB RAM, 500GB SSD
+- NVIDIA GPU for faster processing
+- Gigabit network connection
+
+### Does AttendAI work with any CCTV camera?
+
+Yes, AttendAI works with any IP camera that supports RTSP (Real-Time Streaming Protocol). This includes most modern IP cameras from brands like Hikvision, Dahua, TP-Link, and others. Analog cameras require an IP converter.
+
+### Can I use webcams instead of CCTV cameras?
+
+Yes, USB webcams can be used with RTSP converter software. However, dedicated IP cameras provide better quality and reliability for attendance systems.
+
+### How many cameras can I connect?
+
+There's no hard limit. The number depends on your server capacity. A typical server with GPU can handle 10-20 camera streams simultaneously. For more cameras, add additional processing servers.
+
+### What internet speed do I need?
+
+**Per Camera**:
+- 720p: 2-4 Mbps
+- 1080p: 4-8 Mbps
+
+**Total**: Number of cameras × bitrate per camera
+
+For 10 cameras at 1080p: ~50-80 Mbps recommended.
+
+### Can AttendAI work offline?
+
+Yes, AttendAI can work on a local network without internet. Internet is only required for:
+- Cloud database (MongoDB Atlas)
+- Email notifications
+- Remote access
+- Software updates
+
+You can use local MongoDB for fully offline operation.
+
+### Does AttendAI require a GPU?
+
+No, but highly recommended. AttendAI works on CPU but GPU provides:
+- 10-30x faster processing
+- Support for more cameras
+- Better frame rates
+- Lower latency
+
+### What's the difference between face detection and recognition?
+
+**Face Detection**: Finding faces in an image (who's there)
+**Face Recognition**: Identifying whose face it is (who they are)
+
+AttendAI uses both: detection to find faces, recognition to identify students.
+
+## Setup and Installation
+
+### How long does installation take?
+
+**Basic Setup**: 2-4 hours
+- Install software
+- Configure database
+- Add first camera
+- Register test students
+
+**Complete Setup**: 1-2 days
+- Full system installation
+- Multiple cameras
+- Student registration
+- Testing and training
+
+### Can I install AttendAI myself?
+
+Yes, our documentation provides step-by-step installation instructions. Basic knowledge of Linux, databases, and networking is helpful. Professional installation services are also available.
+
+### Do you provide installation support?
+
+Yes. We offer:
+- **Community Support**: Free forum and Discord
+- **Email Support**: For Pro users
+- **Professional Installation**: Paid service
+- **Training**: On-site or remote training
+
+### Can AttendAI run on Docker?
+
+Yes, we provide Docker images and docker-compose configuration for easy deployment. This is the recommended installation method for production.
+
+## Student Registration
+
+### How do I register students?
+
+Three methods:
+1. **Dashboard Upload**: Upload photos via web interface
+2. **Bulk Import**: CSV file with photo URLs
+3. **Camera Capture**: Register directly from camera
+
+See [Face Registration Guide](/docs/face-registration) for details.
+
+### What kind of photos should I use?
+
+Use clear, front-facing photos with good lighting:
+- ✅ ID card or passport photos
+- ✅ Recent headshots
+- ✅ Webcam captures in good light
+- ❌ Selfies with filters
+- ❌ Side profiles or group photos
+- ❌ Low-quality or blurry images
+
+### Can I register multiple photos per student?
+
+Yes, and it's recommended! Register 3-5 photos per student with variations (with/without glasses, different angles) for better accuracy.
+
+### How often should I update student photos?
+
+**Recommended**: Annually or when appearance changes significantly (haircut, glasses, facial hair).
+
+### What if a student is not recognized?
+
+1. Check camera angle and lighting
+2. Re-register with better quality photos
+3. Register multiple photos
+4. Lower confidence threshold in settings
+5. Use manual attendance as backup
+
+## Camera Setup
+
+### Where should I place cameras?
+
+**Best Locations**:
+- Classroom entry/exit points
+- 5-6 feet height (face level)
+- 6-15 feet from students
+- Good lighting areas
+- Clear view without obstructions
+
+Avoid backlighting, extreme angles, and low-light areas.
+
+### Can I use PTZ (Pan-Tilt-Zoom) cameras?
+
+Yes, but keep them in fixed position during attendance. PTZ is useful for adjusting the view, but recognition works best with stable positioning.
+
+### How do I find my camera's RTSP URL?
+
+Check your camera manual or use ONVIF Device Manager to discover cameras on your network. Common format:
+
+```
+rtsp://username:password@camera-ip:554/stream1
+```
+
+### What resolution should I use?
+
+**Minimum**: 720p (1280x720)
+**Recommended**: 1080p (1920x1080)
+
+Higher resolution improves detection but requires more bandwidth and processing power.
+
+### Can cameras be on a different network?
+
+Yes, but they need network connectivity to the AttendAI server. Use VPN or port forwarding for remote cameras. For security, keep cameras on isolated VLAN.
+
+## Attendance Recording
+
+### How is attendance recorded?
+
+1. Camera captures video
+2. AI detects faces every second
+3. Faces matched with student database
+4. Successful matches recorded with timestamp
+5. Dashboard updated in real-time
+
+### Can the same student be marked twice?
+
+No. AttendAI prevents duplicate entries within a configurable time window (default: 5 minutes).
+
+### What if a student arrives late?
+
+Students detected after 15 minutes of class start are marked as "Late" instead of "Present". This threshold is configurable.
+
+### Can I manually mark attendance?
+
+Yes. Faculty can manually mark students present, absent, or excused through the dashboard with optional reason.
+
+### How long does it take to mark attendance?
+
+Instant. Once a student's face is detected and recognized, attendance is recorded immediately (typically within 1-2 seconds).
+
+### Can attendance be edited later?
+
+Yes. Admins and faculty can edit attendance records with appropriate permissions. All changes are logged for audit.
+
+### What happens if the system goes down?
+
+Use manual attendance as backup. Once system is restored, manual entries can be imported or updated in the system.
+
+## Privacy and Security
+
+### Do you store student photos?
+
+No. AttendAI processes photos to create face embeddings (mathematical representations) and then deletes the original photos. Only embeddings are stored.
+
+### What is a face embedding?
+
+A 128-dimensional vector that represents unique facial features. It cannot be reverse-engineered to recreate the original photo.
+
+### Is AttendAI GDPR compliant?
+
+Yes. AttendAI complies with GDPR requirements including:
+- Right to access data
+- Right to deletion
+- Data minimization
+- Consent management
+- Privacy by design
+
+### Can students access their data?
+
+Yes. Students can view their attendance records and export their personal data through the student portal.
+
+### How long is data retained?
+
+**Default**:
+- Active students: Indefinite
+- Graduated students: 3 years
+- Attendance records: 5 years
+- Deleted students: 30 days (soft delete)
+
+Retention periods are configurable.
+
+### Is video footage stored?
+
+No. Video frames are processed in real-time and discarded. AttendAI does not record or store video footage.
+
+### How is data encrypted?
+
+- **At Rest**: AES-256 encryption for face embeddings and sensitive data
+- **In Transit**: TLS 1.3 for all network communication
+- **Database**: Encrypted MongoDB connections
+
+## Pricing and Licensing
+
+### Is AttendAI free?
+
+AttendAI is open-source but requires licenses for production use:
+
+**Pricing** (per institution):
+- **Starter**: $49/month (up to 100 students)
+- **Pro**: $149/month (up to 1,000 students)
+- **Enterprise**: Custom pricing (unlimited students)
+
+### Can I try AttendAI for free?
+
+Yes. 14-day free trial with no credit card required. Test all features with up to 50 students.
+
+### What's included in Pro tier?
+
+- Up to 1,000 students
+- Unlimited cameras
+- Email support
+- API access
+- Advanced reports
+- LMS integration
+- Mobile app access
+
+### Is there an academic discount?
+
+Yes. Educational institutions get 20-30% discount. Contact sales@attendai.com for details.
+
+### What payment methods do you accept?
+
+- Credit/debit cards
+- Bank transfer
+- Purchase orders (for Enterprise)
+- Annual billing (10% discount)
+
+## Support and Training
+
+### How do I get support?
+
+**Free Tier**:
+- Documentation
+- Community forum
+- Discord server
+
+**Pro/Enterprise**:
+- Email support
+- Priority tickets
+- Phone support (Enterprise)
+- Dedicated account manager (Enterprise)
+
+### Do you provide training?
+
+Yes:
+- **Self-paced**: Video tutorials and documentation
+- **Webinars**: Monthly training webinars
+- **On-site**: Professional training (additional cost)
+- **Custom**: Tailored training programs
+
+### How fast is support response?
+
+- **Community**: Best effort (24-48 hours)
+- **Pro**: 24 hours (business days)
+- **Enterprise**: 4 hours (24/7)
+
+### Can you help with deployment?
+
+Yes. We offer professional services:
+- Installation and setup
+- Camera configuration
+- Student registration
+- Staff training
+- Custom integration
+
+Contact services@attendai.com for quotes.
+
+### Is source code available?
+
+Yes, AttendAI is open-source (MIT License). View code at [github.com/attendai/attendai](https://github.com/attendai/attendai).
+
+## Integration
+
+### Can AttendAI integrate with our LMS?
+
+Yes. Built-in integrations for:
+- Moodle
+- Canvas
+- Blackboard
+- Google Classroom
+- Custom LMS (via API)
+
+### Is there an API?
+
+Yes. Comprehensive REST API for all features. See [API Reference](/docs/api-reference) for details.
+
+### Can we integrate with our student information system?
+
+Yes. Use REST API or we can build custom integration (Enterprise tier).
+
+### Does AttendAI work with mobile apps?
+
+Yes. Official mobile apps available for:
+- iOS (App Store)
+- Android (Google Play)
+
+Also accessible via mobile web browser.
+
+### Can we export data to Excel?
+
+Yes. Export features available:
+- CSV export
+- Excel export
+- PDF reports
+- JSON API export
+
+## Troubleshooting
+
+### Student faces are not detected. What should I do?
+
+1. Check camera angle and positioning
+2. Improve lighting conditions
+3. Verify camera resolution (min 720p)
+4. Check AI service status
+5. Review camera feed quality
+
+### Recognition accuracy is low. How to improve?
+
+1. Use higher quality registration photos
+2. Register multiple photos per student
+3. Improve classroom lighting
+4. Adjust camera positioning
+5. Clean camera lens
+6. Update recognition threshold
+
+### System is slow. How to optimize?
+
+1. Use GPU instead of CPU
+2. Reduce camera resolution/fps
+3. Reduce frame processing rate
+4. Add more processing servers
+5. Optimize network bandwidth
+6. Check database performance
+
+### How do I backup my data?
+
+```bash
+# MongoDB backup
+mongodump --uri="your-mongodb-uri" --out=./backup
+
+# Configuration backup
+tar -czf config-backup.tar.gz /path/to/config
+```
+
+Also use built-in backup features in dashboard.
+
+### Where can I find logs?
+
+- **Application logs**: `logs/app.log`
+- **AI service logs**: `ai-service/logs/`
+- **Error logs**: `logs/error.log`
+- **Audit logs**: Dashboard → Settings → Audit Logs
+
+## Performance
+
+### How many students can AttendAI handle?
+
+No limit. Tested with 50,000+ students. Performance depends on:
+- Server specifications
+- Number of concurrent cameras
+- Network bandwidth
+- Database capacity
+
+### How fast is recognition?
+
+- **Detection**: 10-30ms per frame
+- **Recognition**: 20-50ms per face
+- **Total**: < 100ms per student
+- **With GPU**: 10-20ms total
+
+### Can AttendAI handle multiple classrooms?
+
+Yes. Configure multiple cameras for different classrooms. Each camera can run independent attendance sessions simultaneously.
+
+### Does it work in low light?
+
+Recognition accuracy decreases in low light. Use:
+- Cameras with IR night vision
+- Additional lighting in classrooms
+- Higher sensitivity settings
+
+## Updates and Maintenance
+
+### How often is AttendAI updated?
+
+- **Major releases**: Quarterly
+- **Minor updates**: Monthly
+- **Security patches**: As needed (within 7 days)
+- **Feature updates**: Continuous
+
+### How do I update AttendAI?
+
+```bash
+# Pull latest changes
+git pull origin main
+
+# Update dependencies
+npm install
+pip install -r requirements.txt
+
+# Restart services
+npm run build && npm start
+```
+
+Or use Docker:
+```bash
+docker-compose pull
+docker-compose up -d
+```
+
+### Will updates break my configuration?
+
+No. We maintain backward compatibility. Breaking changes are announced in advance with migration guides.
+
+### Is downtime required for updates?
+
+Typically no. Rolling updates supported. Security patches may require brief restart (1-2 minutes).
+
+## Still Have Questions?
+
+- 📧 **Email**: support@attendai.com
+- 💬 **Community**: [community.attendai.com](https://community.attendai.com)
+- 🐛 **Issues**: [github.com/attendai/attendai/issues](https://github.com/attendai/attendai/issues)
+- 📖 **Documentation**: [docs.attendai.com](https://docs.attendai.com)
+- 📞 **Sales**: sales@attendai.com
+- 🔒 **Security**: security@attendai.com
+
+## Next Steps
+
+- 🚀 [Installation Guide](/docs/installation) - Get started
+- 📖 [User Guide](/docs/dashboard-guide) - Learn the dashboard
+- 🔧 [API Reference](/docs/api-reference) - Integrate with your systems

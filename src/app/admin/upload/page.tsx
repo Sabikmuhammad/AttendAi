@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -173,11 +174,11 @@ export default function UploadStudentPhoto() {
       
       // Refresh students list
       fetchStudents();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Upload error:', error);
       setMessage({
         type: 'error',
-        text: error.message || 'Failed to upload photo. Please try again.',
+        text: (error as Error).message || 'Failed to upload photo. Please try again.',
       });
       setProgress('');
     } finally {

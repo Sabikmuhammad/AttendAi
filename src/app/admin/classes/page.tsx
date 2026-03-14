@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Trash2, Edit, Calendar, Clock, Users, Search } from 'lucide-react';
+import { Plus, Trash2, Users, Search } from 'lucide-react';
 import Link from 'next/link';
 
 interface ClassData {
@@ -16,6 +16,7 @@ interface ClassData {
   department: string;
   startTime: string;
   endTime: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   studentIds: any[];
   status: 'scheduled' | 'active' | 'completed' | 'cancelled';
 }

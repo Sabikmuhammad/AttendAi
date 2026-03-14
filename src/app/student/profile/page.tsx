@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -123,6 +124,7 @@ export default function StudentProfile() {
               <div>
                 <CardTitle className="text-2xl mb-2">{profile.name}</CardTitle>
                 <div className="flex gap-2 items-center flex-wrap">
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   <Badge variant={getRoleBadgeVariant(profile.role) as any}>
                     {profile.role.toUpperCase()}
                   </Badge>

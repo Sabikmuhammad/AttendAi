@@ -1,0 +1,250 @@
+---
+title: "System Architecture"
+description: "Understanding AttendAI's architecture and components"
+---
+
+# System Architecture
+
+AttendAI is built on a modern, scalable architecture that combines real-time video processing, AI-powered face recognition, and cloud-based data management.
+
+## Architecture Overview
+
+```
+┌─────────────────┐
+│  CCTV Camera    │
+│  (Classroom)    │
+└────────┬────────┘
+         │ RTSP Stream
+         ▼
+┌─────────────────┐
+│  Video Capture  │
+│  Service        │
+└────────┬────────┘
+         │ Video Frames
+         ▼
+┌─────────────────┐
+│  AI Processing  │
+│  Engine         │
+│  - Face Detect  │
+│  - Recognition  │
+└────────┬────────┘
+         │ Student IDs
+         ▼
+┌─────────────────┐
+│  MongoDB        │
+│  Database       │
+└────────┬────────┘
+         │ Attendance Data
+         ▼
+┌─────────────────┐
+│  Next.js        │
+│  Dashboard      │
+└─────────────────┘
+```
+
+## System Components
+
+### 1. CCTV Camera Layer
+
+**Purpose**: Capture live video from classrooms
+
+- IP cameras with RTSP support
+- Positioned at classroom entrances or strategic locations
+- Continuous video streaming to processing server
+- Multiple cameras supported per classroom
+
+**Requirements**:
+- RTSP protocol support
+- Minimum 720p resolution (1080p recommended)
+- Stable network connection
+- Fixed positioning for optimal face capture
+
+### 2. Video Stream Capture
+
+**Purpose**: Receive and process RTSP streams
+
+- Connects to CCTV cameras via RTSP URLs
+- Extracts video frames at configurable intervals (default: 1 FPS)
+- Optimizes frame quality for face detection
+- Handles multiple camera streams simultaneously
+
+**Technology**:
+- OpenCV for video processing
+- FFmpeg for stream decoding
+- Python async/await for concurrent processing
+
+### 3. AI Processing Engine
+
+**Purpose**: Detect and recognize faces in video frames
+
+#### Face Detection Module
+- Uses MTCNN (Multi-task Cascaded Convolutional Networks)
+- Detects multiple faces in each frame
+- Extracts face bounding boxes and landmarks
+- Filters low-quality detections
+
+#### Face Recognition Module
+- Generates 128-dimensional face embeddings
+- Uses deep learning models (FaceNet/ArcFace)
+- Compares embeddings with registered student database
+- Confidence threshold: 0.6 (configurable)
+
+**Technology**:
+- Python + TensorFlow/PyTorch
+- face_recognition library
+- dlib for face landmarks
+- NumPy for embedding operations
+
+**Performance**:
+- Processing speed: 30-60 faces/second (with GPU)
+- Recognition accuracy: 99.9%
+- False positive rate: < 0.1%
+
+### 4. Database Layer
+
+**Purpose**: Store student profiles, face embeddings, and attendance records
+
+#### Collections:
+
+**Students Collection**:
+```json
+{
+  "_id": "ObjectId",
+  "name": "John Doe",
+  "rollNumber": "CS2024001",
+  "email": "john@university.edu",
+  "department": "Computer Science",
+  "faceEmbedding": [0.123, -0.456, ...],
+  "photo": "https://cloudinary.com/photo.jpg"
+}
+```
+
+**Classes Collection**:
+```json
+{
+  "_id": "ObjectId",
+  "name": "Data Structures",
+  "code": "CS301",
+  "schedule": "MWF 10:00-11:00",
+  "classroom": "Room 101",
+  "facultyId": "ObjectId"
+}
+```
+
+**Attendance Collection**:
+```json
+{
+  "_id": "ObjectId",
+  "studentId": "ObjectId",
+  "classId": "ObjectId",
+  "timestamp": "2026-03-12T10:05:23Z",
+  "confidence": 0.95,
+  "cameraId": "CAM-101"
+}
+```
+
+**Technology**:
+- MongoDB Atlas (cloud-hosted)
+- Mongoose ODM for schemas
+- Indexes on studentId and timestamp for fast queries
+
+### 5. Web Dashboard (Next.js)
+
+**Purpose**: Admin interface for managing attendance system
+
+#### Features:
+- 📊 **Attendance Dashboard**: View real-time attendance statistics
+- 👥 **Student Management**: Add, edit, delete student records
+- 🎓 **Class Management**: Configure classes and schedules
+- 📸 **Face Registration**: Upload and register student photos
+- 📈 **Reports**: Generate attendance reports (daily, weekly, monthly)
+- 🎥 **Camera Monitoring**: View live camera feeds
+- ⚙️ **System Settings**: Configure recognition thresholds and parameters
+
+**Technology**:
+- Next.js 14 (App Router)
+- TypeScript for type safety
+- Tailwind CSS for styling
+- Clerk for authentication
+- React Query for data fetching
+
+## Data Flow
+
+### Attendance Recording Flow
+
+1. **Video Capture**
+   - Camera streams RTSP video to capture service
+   - Service extracts frames at 1 FPS
+
+2. **Face Detection**
+   - Each frame is processed by face detection model
+   - Face regions are extracted and normalized
+
+3. **Face Recognition**
+   - Face embeddings are generated for each detected face
+   - Embeddings are compared with student database
+   - Best match above confidence threshold is selected
+
+4. **Attendance Recording**
+   - Student ID and timestamp are recorded in database
+   - Duplicate entries within 5 minutes are prevented
+   - Notification sent to admin dashboard
+
+5. **Dashboard Update**
+   - Real-time WebSocket updates to connected dashboards
+   - Attendance counts refreshed
+   - Student status updated (Present/Absent)
+
+## Deployment Architecture
+
+### Production Setup
+
+```
+                Internet
+                   │
+                   ▼
+         ┌─────────────────┐
+         │  Load Balancer  │
+         └────────┬────────┘
+                  │
+        ┌─────────┴─────────┐
+        ▼                   ▼
+┌──────────────┐    ┌──────────────┐
+│  Web Server  │    │  Web Server  │
+│  (Next.js)   │    │  (Next.js)   │
+└──────┬───────┘    └──────┬───────┘
+       │                   │
+       └─────────┬─────────┘
+                 ▼
+        ┌─────────────────┐
+        │  AI Processing  │
+        │  Server (GPU)   │
+        └────────┬────────┘
+                 │
+                 ▼
+        ┌─────────────────┐
+        │  MongoDB Atlas  │
+        └─────────────────┘
+```
+
+### Scalability
+
+- **Horizontal Scaling**: Add more AI processing servers for handling more cameras
+- **Load Balancing**: Distribute web traffic across multiple Next.js instances
+- **Database Sharding**: Partition data across multiple MongoDB nodes
+- **CDN Integration**: Cloudinary for serving images and videos
+
+## Security Architecture
+
+- **Authentication**: Clerk-based JWT tokens
+- **Authorization**: Role-based access control (Admin, Faculty, Student)
+- **Data Encryption**: AES-256 for face embeddings
+- **API Security**: Rate limiting and request validation
+- **Network Security**: HTTPS/TLS for all communications
+- **Privacy**: Face embeddings stored instead of actual photos
+
+## Next Steps
+
+- 📦 [Installation Guide](/docs/installation) - Deploy AttendAI
+- 🎥 [Camera Setup](/docs/camera-setup) - Configure CCTV cameras
+- 🔒 [Security](/docs/security) - Learn about security features

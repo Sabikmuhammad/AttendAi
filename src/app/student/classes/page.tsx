@@ -22,6 +22,7 @@ interface Class {
   section?: string;
   classroomNumber: string;
   facultyName: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   facultyId?: any;
   startTime: string;
   endTime: string;

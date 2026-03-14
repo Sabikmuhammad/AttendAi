@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -21,6 +22,8 @@ interface Student {
   registerNumber: string;
   email: string;
   department: string;
+  section?: string;
+  semester?: string;
 }
 
 interface ClassData {

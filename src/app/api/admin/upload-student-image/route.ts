@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Admin API: Upload Student Image
  * 
@@ -18,6 +19,7 @@ import Student from '@/models/Student';
 import User from '@/models/User';
 import { uploadStudentImage, ImageUploadError } from '@/services/imageUploadService';
 import { generateFaceEmbedding, EmbeddingServiceError } from '@/services/embeddingService';
+import { withInstitutionScope } from '@/lib/tenant';
 
 /**
  * Response format for successful upload
@@ -61,9 +63,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = await User.findById(session.user.id);
+    const institutionId =
+      (session.user as any).institutionId ||
+      process.env.DEFAULT_INSTITUTION_ID ||
+      'default-institution';
 
-    if (!user || user.role !== 'admin') {
+    const user = await User.findOne(
+      withInstitutionScope({ _id: session.user.id }, institutionId)
+    );
+
+    if (
+      !user ||
+      !['super_admin', 'institution_admin', 'department_admin', 'admin'].includes(user.role)
+    ) {
       return NextResponse.json<UploadErrorResponse>(
         {
           success: false,
@@ -106,7 +118,9 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     // 4. Verify student exists
-    const student = await Student.findOne({ studentId });
+    const student = await Student.findOne(
+      withInstitutionScope({ studentId }, institutionId)
+    );
 
     if (!student) {
       return NextResponse.json<UploadErrorResponse>(
@@ -164,7 +178,10 @@ export async function POST(request: NextRequest) {
             updatedAt: new Date(),
           };
 
-          await Student.findByIdAndUpdate(student._id, { $set: updateData });
+          await Student.findOneAndUpdate(
+            withInstitutionScope({ _id: student._id }, institutionId),
+            { $set: updateData }
+          );
 
           return NextResponse.json<UploadSuccessResponse>(
             {
@@ -191,7 +208,10 @@ export async function POST(request: NextRequest) {
       updateData.faceEmbedding = embedding;
     }
 
-    await Student.findByIdAndUpdate(student._id, { $set: updateData });
+    await Student.findOneAndUpdate(
+      withInstitutionScope({ _id: student._id }, institutionId),
+      { $set: updateData }
+    );
 
     console.log(`💾 Student record updated in database`);
 

@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Class from '@/models/Class';
 import Attendance from '@/models/Attendance';
 import Student from '@/models/Student';
-import User from '@/models/User';
+import { auth } from '@/lib/auth';
+import { withInstitutionScope } from '@/lib/tenant';
 
 // GET specific class details for student
 export async function GET(
@@ -12,22 +14,26 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const session = await auth();
 
-    await connectDB();
-
-    // Get student email from query parameter
-    const { searchParams } = new URL(request.url);
-    const email = searchParams.get('email');
-
-    if (!email) {
+    if (!session || !session.user) {
       return NextResponse.json(
-        { success: false, error: 'Email parameter is required' },
-        { status: 400 }
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
       );
     }
 
+    await connectDB();
+
+    const institutionId =
+      (session.user as any).institutionId ||
+      process.env.DEFAULT_INSTITUTION_ID ||
+      'default-institution';
+
     // Find the student record
-    const student: any = await Student.findOne({ email }).lean();
+    const student: any = await Student.findOne(
+      withInstitutionScope({ userId: (session.user as any).id }, institutionId)
+    ).lean();
 
     if (!student) {
       return NextResponse.json(
@@ -37,7 +43,7 @@ export async function GET(
     }
 
     // Get class details
-    const classData: any = await Class.findById(id)
+    const classData: any = await Class.findOne(withInstitutionScope({ _id: id }, institutionId))
       .populate('facultyId', 'name email')
       .populate('studentIds', 'name registerNumber')
       .lean();
@@ -63,8 +69,7 @@ export async function GET(
 
     // Get attendance record for this class
     const attendanceRecord = await Attendance.findOne({
-      classId: id,
-      studentId: student._id,
+      ...withInstitutionScope({ classId: id, studentId: student._id }, institutionId),
     }).lean();
 
     return NextResponse.json({

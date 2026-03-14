@@ -3,6 +3,7 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 export interface IOTP extends Document {
   _id: mongoose.Types.ObjectId;
   email: string;
+  institutionId: string;
   otp: string;
   expiresAt: Date;
   createdAt: Date;
@@ -15,6 +16,12 @@ const OTPSchema = new Schema<IOTP>(
       required: [true, 'Email is required'],
       lowercase: true,
       trim: true,
+    },
+    institutionId: {
+      type: String,
+      required: true,
+      default: () => process.env.DEFAULT_INSTITUTION_ID || 'default-institution',
+      index: true,
     },
     otp: {
       type: String,
@@ -33,7 +40,7 @@ const OTPSchema = new Schema<IOTP>(
 );
 
 // Index for faster email lookups and automatic document deletion
-OTPSchema.index({ email: 1 });
+OTPSchema.index({ institutionId: 1, email: 1 });
 OTPSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 const OTP: Model<IOTP> = mongoose.models.OTP || mongoose.model<IOTP>('OTP', OTPSchema);

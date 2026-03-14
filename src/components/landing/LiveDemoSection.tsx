@@ -24,25 +24,25 @@ export function LiveDemoSection() {
 
   return (
     <SectionWrapper id="demo">
-      <div className="text-center mb-16">
+      <div className="text-center mb-12 sm:mb-16">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold mb-4 sm:mb-6 px-4">
             <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
               See AI in Action
             </span>
           </h2>
-          <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg lg:text-xl text-gray-400 max-w-2xl mx-auto px-4">
             Watch how AttendAI processes CCTV feeds in real-time
           </p>
         </motion.div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 px-4 sm:px-0">
         {/* Camera Feed Simulation */}
         <motion.div
           initial={{ opacity: 0, x: -50 }}
@@ -52,18 +52,18 @@ export function LiveDemoSection() {
           className="relative aspect-video backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl overflow-hidden shadow-2xl"
         >
           {/* Camera Header */}
-          <div className="absolute top-0 left-0 right-0 bg-black/50 backdrop-blur-sm p-4 z-10 border-b border-white/10">
+          <div className="absolute top-0 left-0 right-0 bg-black/50 backdrop-blur-sm p-3 sm:p-4 z-10 border-b border-white/10">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <Camera className="h-5 w-5 text-cyan-400" />
-                <span className="text-sm font-medium text-white">Camera 01</span>
+                <Camera className="h-4 w-4 sm:h-5 sm:w-5 text-cyan-400" />
+                <span className="text-xs sm:text-sm font-medium text-white">Camera 01</span>
               </div>
               <div className="flex items-center space-x-2">
-                <span className="relative flex h-3 w-3">
+                <span className="relative flex h-2.5 w-2.5 sm:h-3 sm:w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 sm:h-3 sm:w-3 bg-red-500"></span>
                 </span>
-                <span className="text-xs text-gray-400">LIVE</span>
+                <span className="text-[10px] sm:text-xs text-gray-400">LIVE</span>
               </div>
             </div>
           </div>
@@ -109,12 +109,12 @@ export function LiveDemoSection() {
           </div>
 
           {/* Stats Overlay */}
-          <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-xs z-10">
-            <div className="backdrop-blur-sm bg-black/50 px-3 py-2 rounded-lg border border-white/10">
+          <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4 right-3 sm:right-4 flex items-center justify-between text-[10px] sm:text-xs z-10 gap-2">
+            <div className="backdrop-blur-sm bg-black/50 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-white/10">
               <span className="text-gray-400">Detected: </span>
               <span className="text-cyan-400 font-bold">4 faces</span>
             </div>
-            <div className="backdrop-blur-sm bg-black/50 px-3 py-2 rounded-lg border border-white/10">
+            <div className="backdrop-blur-sm bg-black/50 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-white/10">
               <span className="text-gray-400">Processing: </span>
               <span className="text-green-400 font-bold">0.15s</span>
             </div>
@@ -127,20 +127,20 @@ export function LiveDemoSection() {
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="relative backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 shadow-2xl"
+          className="relative backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-6 shadow-2xl"
         >
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-2xl font-bold text-white flex items-center">
-              <CheckCircle2 className="h-6 w-6 text-green-400 mr-2" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-2">
+            <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-white flex items-center">
+              <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 text-green-400 mr-2" />
               Attendance Log
             </h3>
-            <div className="text-sm text-gray-400 flex items-center">
-              <Clock className="h-4 w-4 mr-1" />
+            <div className="text-xs sm:text-sm text-gray-400 flex items-center">
+              <Clock className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
               Real-time
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {attendanceLog.map((log, index) => (
               <motion.div
                 key={log.id}

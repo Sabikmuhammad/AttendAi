@@ -1,69 +1,33 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { SectionWrapper } from './SectionWrapper';
-
-const institutions = [
-  { name: 'Stanford University', logo: 'SU' },
-  { name: 'MIT', logo: 'MIT' },
-  { name: 'Google', logo: 'G' },
-  { name: 'Microsoft', logo: 'MS' },
-  { name: 'Harvard', logo: 'HU' },
-  { name: 'Yale', logo: 'YU' },
-];
-
 export function TrustedBySection() {
+  const logos = [
+    'University A',
+    'Institute B', 
+    'College C',
+    'Academy D',
+    'Training E',
+    'School F'
+  ];
+
   return (
-    <SectionWrapper className="py-16">
-      <div className="text-center mb-12">
-        <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          className="text-sm uppercase tracking-wider text-gray-500"
-        >
-          Trusted by Leading Institutions
-        </motion.p>
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        className="relative overflow-hidden"
-      >
-        {/* Gradient overlays */}
-        <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-black to-transparent z-10" />
-        <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-black to-transparent z-10" />
-
-        <motion.div
-          animate={{
-            x: [0, -1000],
-          }}
-          transition={{
-            x: {
-              repeat: Infinity,
-              repeatType: 'loop',
-              duration: 20,
-              ease: 'linear',
-            },
-          }}
-          className="flex space-x-16"
-        >
-          {[...institutions, ...institutions].map((institution, index) => (
+    <section className="py-12 sm:py-16 lg:py-20 bg-black border-b border-white/10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <p className="text-center text-xs sm:text-sm text-gray-500 mb-8 sm:mb-12">
+          Trusted by universities, training institutes, and modern classrooms.
+        </p>
+        
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6 lg:gap-8 items-center">
+          {logos.map((logo, index) => (
             <div
-              key={`${institution.name}-${index}`}
-              className="flex items-center justify-center min-w-[200px]"
+              key={index}
+              className="flex items-center justify-center h-12 sm:h-14 lg:h-16 px-3 sm:px-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
             >
-              <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-8 hover:bg-white/10 transition-colors">
-                <div className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
-                  {institution.logo}
-                </div>
-              </div>
+              <span className="text-xs sm:text-sm text-gray-400 font-medium">{logo}</span>
             </div>
           ))}
-        </motion.div>
-      </motion.div>
-    </SectionWrapper>
+        </div>
+      </div>
+    </section>
   );
 }

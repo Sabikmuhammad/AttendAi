@@ -1,129 +1,97 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { Camera, Brain, Database, ArrowRight } from 'lucide-react';
-import { SectionWrapper } from './SectionWrapper';
+import { Video, Scan, UserCheck, Database } from 'lucide-react';
 
 const steps = [
   {
-    number: '01',
-    icon: Camera,
-    title: 'Connect CCTV Cameras',
-    description: 'Integrate your existing CCTV infrastructure with our secure AI platform in minutes.',
-    gradient: 'from-purple-500 to-pink-500',
+    icon: Video,
+    title: 'Camera Capture',
+    description: 'CCTV cameras capture classroom video in real time.',
+    color: 'purple'
   },
   {
-    number: '02',
-    icon: Brain,
-    title: 'AI Detects Faces',
-    description: 'Our computer vision models identify and recognize faces in real-time with 99.9% accuracy.',
-    gradient: 'from-cyan-500 to-blue-500',
+    icon: Scan,
+    title: 'Face Detection',
+    description: 'AI detects human faces in the video stream.',
+    color: 'blue'
   },
   {
-    number: '03',
+    icon: UserCheck,
+    title: 'Face Recognition',
+    description: 'Faces are matched with registered students.',
+    color: 'green'
+  },
+  {
     icon: Database,
-    title: 'Auto-Record Attendance',
-    description: 'Attendance is automatically logged, verified, and synced to your dashboard instantly.',
-    gradient: 'from-green-500 to-emerald-500',
-  },
+    title: 'Attendance Recorded',
+    description: 'Attendance is stored automatically in the database.',
+    color: 'orange'
+  }
 ];
+
+const colorClasses = {
+  purple: 'bg-purple-600/20 text-purple-400',
+  blue: 'bg-blue-600/20 text-blue-400',
+  green: 'bg-green-600/20 text-green-400',
+  orange: 'bg-orange-600/20 text-orange-400'
+};
 
 export function HowItWorksSection() {
   return (
-    <SectionWrapper id="how-it-works" className="bg-black/30">
-      <div className="text-center mb-16">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
-            <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-              How AttendAI Works
-            </span>
+    <section className="py-16 sm:py-24 lg:py-32 bg-black relative overflow-hidden">
+      {/* Background Effects */}
+      <div 
+        className="absolute inset-0 opacity-[0.02]"
+        style={{
+          backgroundImage: `linear-gradient(to right, white 1px, transparent 1px),
+                          linear-gradient(to bottom, white 1px, transparent 1px)`,
+          backgroundSize: '80px 80px'
+        }}
+      />
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="text-center mb-12 sm:mb-16 lg:mb-20">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4">
+            How It Works
           </h2>
-          <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-            Three simple steps to transform your attendance system
+          <p className="text-base sm:text-lg text-gray-400 max-w-2xl mx-auto">
+            AttendAI automates attendance in four simple steps
           </p>
-        </motion.div>
-      </div>
+        </div>
 
-      <div className="relative max-w-5xl mx-auto">
-        {/* Connection Lines */}
-        <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-500 via-cyan-500 to-green-500 opacity-20 -translate-y-1/2" />
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
+        {/* Steps */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
           {steps.map((step, index) => (
-            <motion.div
-              key={step.number}
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: index * 0.2 }}
-              className="relative"
-            >
-              {/* Step Card */}
-              <div className="relative backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-8 shadow-2xl hover:bg-white/10 transition-all group">
+            <div key={index} className="relative">
+              {/* Connector Line (desktop only) */}
+              {index < steps.length - 1 && (
+                <div className="hidden lg:block absolute top-16 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-white/20 to-transparent" />
+              )}
+              
+              <div className="relative p-6 sm:p-8 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all duration-300">
                 {/* Step Number */}
-                <div className="absolute -top-6 -left-6 w-16 h-16 rounded-2xl bg-gradient-to-br from-black to-gray-900 border border-white/20 flex items-center justify-center">
-                  <span className={`text-2xl font-bold bg-gradient-to-r ${step.gradient} bg-clip-text text-transparent`}>
-                    {step.number}
-                  </span>
+                <div className="absolute -top-3 -left-3 sm:-top-4 sm:-left-4 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black border border-white/20 flex items-center justify-center text-xs sm:text-sm font-bold text-white">
+                  {index + 1}
                 </div>
 
                 {/* Icon */}
-                <div className="relative mb-6 inline-block mt-6">
-                  <div className={`absolute inset-0 bg-gradient-to-r ${step.gradient} blur-xl opacity-50 group-hover:opacity-75 transition-opacity rounded-xl`} />
-                  <div className={`relative p-4 bg-gradient-to-r ${step.gradient} rounded-xl`}>
-                    <step.icon className="h-8 w-8 text-white" />
-                  </div>
+                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg ${colorClasses[step.color as keyof typeof colorClasses]} flex items-center justify-center mb-4 sm:mb-6`}>
+                  <step.icon className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
 
                 {/* Content */}
-                <h3 className="text-2xl font-bold text-white mb-4">
+                <h3 className="text-lg sm:text-xl font-semibold text-white mb-2 sm:mb-3">
                   {step.title}
                 </h3>
-                <p className="text-gray-400 leading-relaxed">
+                <p className="text-sm sm:text-base text-gray-400 leading-relaxed">
                   {step.description}
                 </p>
-
-                {/* Hover Effect */}
-                <div className={`absolute inset-0 rounded-2xl bg-gradient-to-r ${step.gradient} opacity-0 group-hover:opacity-10 transition-opacity pointer-events-none`} />
               </div>
-
-              {/* Arrow Connector (Desktop only) */}
-              {index < steps.length - 1 && (
-                <div className="hidden lg:flex absolute top-1/2 -right-6 -translate-y-1/2 z-10">
-                  <motion.div
-                    animate={{
-                      x: [0, 5, 0],
-                    }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                  >
-                    <ArrowRight className="h-8 w-8 text-cyan-400" />
-                  </motion.div>
-                </div>
-              )}
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>
-
-      {/* Bottom CTA */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6, delay: 0.6 }}
-        className="text-center mt-16"
-      >
-        <p className="text-gray-400 mb-4">Ready to get started?</p>
-        <div className="inline-flex items-center space-x-2 px-6 py-3 rounded-full bg-gradient-to-r from-purple-600 to-cyan-600 text-white font-medium hover:shadow-lg hover:shadow-purple-500/50 transition-all cursor-pointer">
-          <span>Start Your Free Trial</span>
-          <ArrowRight className="h-5 w-5" />
-        </div>
-      </motion.div>
-    </SectionWrapper>
+    </section>
   );
 }

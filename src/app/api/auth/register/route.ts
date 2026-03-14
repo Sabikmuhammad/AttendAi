@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { connectDB } from '@/lib/mongodb';
@@ -5,17 +6,33 @@ import User from '@/models/User';
 import Student from '@/models/Student';
 import Faculty from '@/models/Faculty';
 import OTP from '@/models/OTP';
+import Institution from '@/models/Institution';
 import { sendOTPEmail } from '@/lib/email';
+import { withInstitutionScope } from '@/lib/tenant';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, email, password, role, studentId, facultyId, department, section } = body;
+    const {
+      name,
+      email,
+      password,
+      role,
+      institutionCode,
+      studentId,
+      facultyId,
+      department,
+      section,
+      semester,
+    } = body;
 
     // Validation
-    if (!name || !email || !password || !role) {
+    if (!name || !email || !password || !role || !institutionCode) {
       return NextResponse.json(
-        { success: false, error: 'Name, email, password, and role are required' },
+        {
+          success: false,
+          error: 'name, email, password, role, and institutionCode are required',
+        },
         { status: 400 }
       );
     }
@@ -48,6 +65,18 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
+      if (!section) {
+        return NextResponse.json(
+          { success: false, error: 'Section is required for student registration' },
+          { status: 400 }
+        );
+      }
+      if (!semester) {
+        return NextResponse.json(
+          { success: false, error: 'Semester is required for student registration' },
+          { status: 400 }
+        );
+      }
     }
 
     if (role === 'faculty') {
@@ -67,8 +96,23 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    const institution = await Institution.findOne({
+      code: String(institutionCode).toUpperCase(),
+    }).lean<{ _id: string }>();
+
+    if (!institution) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid institution code' },
+        { status: 400 }
+      );
+    }
+
+    const institutionId = String(institution._id);
+
+    // Check if user already exists in this institution
+    const existingUser = await User.findOne(
+      withInstitutionScope({ email: email.toLowerCase() }, institutionId)
+    );
     if (existingUser) {
       if (existingUser.isVerified) {
         return NextResponse.json(
@@ -77,7 +121,9 @@ export async function POST(request: NextRequest) {
         );
       } else {
         // User exists but not verified - delete old OTPs and send new one
-        await OTP.deleteMany({ email: email.toLowerCase() });
+        await OTP.deleteMany(
+          withInstitutionScope({ email: email.toLowerCase() }, institutionId)
+        );
         
         // Generate new OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -85,6 +131,7 @@ export async function POST(request: NextRequest) {
         // Save OTP
         await OTP.create({
           email: email.toLowerCase(),
+          institutionId,
           otp,
         });
 
@@ -101,7 +148,9 @@ export async function POST(request: NextRequest) {
 
     // Check if studentId or facultyId already exists
     if (role === 'student') {
-      const existingStudent = await Student.findOne({ studentId });
+      const existingStudent = await Student.findOne(
+        withInstitutionScope({ studentId }, institutionId)
+      );
       if (existingStudent) {
         return NextResponse.json(
           { success: false, error: 'Student ID already exists' },
@@ -111,7 +160,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (role === 'faculty') {
-      const existingFaculty = await Faculty.findOne({ facultyId });
+      const existingFaculty = await Faculty.findOne(
+        withInstitutionScope({ facultyId }, institutionId)
+      );
       if (existingFaculty) {
         return NextResponse.json(
           { success: false, error: 'Faculty ID already exists' },
@@ -127,8 +178,10 @@ export async function POST(request: NextRequest) {
     const newUser = await User.create({
       name,
       email: email.toLowerCase(),
+      passwordHash: hashedPassword,
       password: hashedPassword,
       role,
+      institutionId,
       isVerified: false,
     });
 
@@ -137,13 +190,16 @@ export async function POST(request: NextRequest) {
       await Student.create({
         userId: newUser._id,
         studentId,
+        institutionId,
         department,
-        section: section || '',
+        section,
+        semester,
       });
     } else if (role === 'faculty') {
       await Faculty.create({
         userId: newUser._id,
         facultyId,
+        institutionId,
         department,
       });
     }
@@ -154,6 +210,7 @@ export async function POST(request: NextRequest) {
     // Save OTP to database
     await OTP.create({
       email: email.toLowerCase(),
+      institutionId,
       otp,
     });
 

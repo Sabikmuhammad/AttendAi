@@ -13,6 +13,8 @@ interface Faculty {
   facultyId: string;
   email: string;
   department: string;
+  section?: string;
+  semester?: string;
   designation?: string;
   imageUrl?: string;
   createdAt: string;
@@ -158,6 +160,9 @@ export default function FacultyManagement() {
                   Department
                 </th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
+                  Section
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
                   Designation
                 </th>
                 <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">
@@ -199,6 +204,15 @@ export default function FacultyManagement() {
                     </td>
                     <td className="py-3 px-4 text-sm text-gray-600">
                       {fac.department}
+                    </td>
+                    <td className="py-3 px-4 text-sm">
+                      {fac.section && fac.semester ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          Sec {fac.section} • Sem {fac.semester}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
                     </td>
                     <td className="py-3 px-4 text-sm text-gray-600">
                       {fac.designation || '-'}
@@ -412,6 +426,8 @@ function EditFacultyModal({
     name: faculty.name || '',
     email: faculty.email || '',
     department: faculty.department || '',
+    section: faculty.section || '',
+    semester: faculty.semester || '',
     designation: faculty.designation || '',
     imageUrl: faculty.imageUrl || '',
   });
@@ -482,6 +498,36 @@ function EditFacultyModal({
                 setFormData({ ...formData, department: e.target.value })
               }
             />
+          </div>
+          <div>
+            <Label>Assigned Section (optional)</Label>
+            <Input
+              placeholder="e.g., A, B, C"
+              value={formData.section}
+              onChange={(e) =>
+                setFormData({ ...formData, section: e.target.value })
+              }
+            />
+            <p className="text-xs text-gray-500 mt-1">Section coordinator assignment</p>
+          </div>
+          <div>
+            <Label>Assigned Semester (optional)</Label>
+            <select
+              value={formData.semester}
+              onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            >
+              <option value="">No semester assigned</option>
+              <option value="1">Semester 1</option>
+              <option value="2">Semester 2</option>
+              <option value="3">Semester 3</option>
+              <option value="4">Semester 4</option>
+              <option value="5">Semester 5</option>
+              <option value="6">Semester 6</option>
+              <option value="7">Semester 7</option>
+              <option value="8">Semester 8</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">Semester coordinator assignment</p>
           </div>
           <div>
             <Label>Designation (optional)</Label>

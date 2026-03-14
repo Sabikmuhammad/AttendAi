@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Class from '@/models/Class';
+import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
 
 export async function GET(
   request: NextRequest,
@@ -10,8 +11,9 @@ export async function GET(
     const { id } = await params;
 
     await connectDB();
+    const tenant = await getTenantContext(request);
 
-    const classData = await Class.findById(id)
+    const classData = await Class.findOne(withInstitutionScope({ _id: id }, tenant.institutionId))
       .populate('studentIds', 'name registerNumber email department')
       .lean();
 

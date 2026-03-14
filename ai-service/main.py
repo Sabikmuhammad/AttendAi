@@ -32,7 +32,7 @@ from recognition import recognize_faces
 from embeddings import EmbeddingStore
 
 # Import new routes
-from routes import monitor, attendance
+from routes import monitor, attendance, stream
 
 # Import utilities
 from utils.database import connect_to_mongodb, close_mongodb_connection
@@ -68,6 +68,7 @@ app.add_middleware(
 # ─── Include Routers ─────────────────────────────────────────────────────────────
 app.include_router(monitor.router)
 app.include_router(attendance.router)
+app.include_router(stream.router)
 
 # ─── Global Embedding Store ──────────────────────────────────────────────────────
 # NOTE: Old EmbeddingStore is deprecated - using StudentEmbeddingStore from face_recognition_service

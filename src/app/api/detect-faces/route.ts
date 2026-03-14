@@ -1,7 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Class from '@/models/Class';
 import Student from '@/models/Student';
+import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
 
 /**
  * API endpoint to detect faces in uploaded images
@@ -9,6 +11,15 @@ import Student from '@/models/Student';
  */
 export async function POST(request: NextRequest) {
   try {
+    const tenant = await getTenantContext(request);
+    const contentType = request.headers.get('content-type') || '';
+    if (!contentType.includes('multipart/form-data')) {
+      return NextResponse.json(
+        { success: false, error: 'Content-Type must be multipart/form-data' },
+        { status: 400 }
+      );
+    }
+
     const formData = await request.formData();
     const image = formData.get('image') as File;
     const classId = formData.get('classId') as string;
@@ -23,7 +34,9 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     // Get class data with enrolled students
-    const classData: any = await Class.findById(classId)
+    const classData: any = await Class.findOne(
+      withInstitutionScope({ _id: classId }, tenant.institutionId)
+    )
       .populate('studentIds')
       .lean();
 
@@ -63,14 +76,18 @@ export async function POST(request: NextRequest) {
       // Format detected students
       const detectedStudents = await Promise.all(
         detectionResult.detected_students.map(async (detection: any) => {
-          const student: any = await Student.findById(detection.student_id).lean();
+          const student: any = await Student.findOne(
+            withInstitutionScope({ _id: detection.student_id }, tenant.institutionId)
+          )
+            .populate('userId', 'name')
+            .lean();
           
           if (!student) return null;
 
           return {
             studentId: student._id.toString(),
-            name: student.name,
-            registerNumber: student.registerNumber,
+            name: student.userId?.name || student.studentId,
+            registerNumber: student.studentId,
             confidence: detection.confidence,
             timestamp: new Date().toISOString(),
           };

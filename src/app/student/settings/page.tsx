@@ -72,7 +72,7 @@ export default function StudentSettings() {
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to update profile' });
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'An error occurred while updating profile' });
     } finally {
       setSaving(false);

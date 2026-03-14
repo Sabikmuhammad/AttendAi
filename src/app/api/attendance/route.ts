@@ -1,13 +1,14 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Attendance from '@/models/Attendance';
-import Class from '@/models/Class';
-import Student from '@/models/Student';
+import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
 
 // GET attendance records with various filters
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
+    const tenant = await getTenantContext(req);
 
     const { searchParams } = new URL(req.url);
     const classId = searchParams.get('classId');
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest) {
     const endDate = searchParams.get('endDate');
     const format = searchParams.get('format'); // 'json' or 'csv'
 
-    const filter: any = {};
+    const filter: any = withInstitutionScope({}, tenant.institutionId);
     if (classId) filter.classId = classId;
     if (studentId) filter.studentId = studentId;
     if (startDate || endDate) {
@@ -75,6 +76,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
+    const tenant = await getTenantContext(req);
 
     const body = await req.json();
     const { classId, studentId, status, confidence, imageUrl, detectedAt } = body;
@@ -87,7 +89,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if attendance already exists
-    const existing = await Attendance.findOne({ classId, studentId });
+    const existing = await Attendance.findOne(
+      withInstitutionScope({ classId, studentId }, tenant.institutionId)
+    );
     if (existing) {
       return NextResponse.json(
         { error: 'Attendance already marked for this student in this class' },
@@ -96,6 +100,7 @@ export async function POST(req: NextRequest) {
     }
 
     const attendance = await Attendance.create({
+      institutionId: tenant.institutionId,
       classId,
       studentId,
       status,

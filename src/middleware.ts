@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { ACCESS_COOKIE_NAME } from '@/lib/auth-cookies';
+import { verifyAccessToken } from '@/lib/jwt';
 
 /**
  * Middleware - Role-Based Access Control
@@ -19,11 +20,26 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Get token from request
-  const token = await getToken({ 
-    req: request, 
-    secret: process.env.NEXTAUTH_SECRET 
-  });
+  const accessToken = request.cookies.get(ACCESS_COOKIE_NAME)?.value;
+
+  let token:
+    | {
+        role: string;
+        institutionId: string;
+      }
+    | undefined;
+
+  if (accessToken) {
+    try {
+      const payload = await verifyAccessToken(accessToken);
+      token = {
+        role: payload.role,
+        institutionId: payload.institutionId,
+      };
+    } catch {
+      token = undefined;
+    }
+  }
 
   // Redirect to login if not authenticated
   if (!token) {
@@ -34,24 +50,65 @@ export async function middleware(request: NextRequest) {
 
   // Role-based access control
   const userRole = token.role as string;
+  const institutionId = token.institutionId as string | undefined;
 
-  // Admin routes - only admin can access
+  // All non-super-admin users must have tenant context in SaaS mode.
+  if (userRole !== 'super_admin' && !institutionId) {
+    return NextResponse.redirect(new URL('/unauthorized', request.url));
+  }
+
+  // Super admin routes
+  if (pathname.startsWith('/super-admin')) {
+    if (userRole !== 'super_admin') {
+      return NextResponse.redirect(new URL('/unauthorized', request.url));
+    }
+  }
+
+  // Institution admin routes
+  if (pathname.startsWith('/institutionadmin')) {
+    if (
+      userRole !== 'institution_admin' &&
+      userRole !== 'admin' &&
+      userRole !== 'super_admin'
+    ) {
+      return NextResponse.redirect(new URL('/unauthorized', request.url));
+    }
+  }
+
+  // Department admin routes (legacy admin path)
   if (pathname.startsWith('/admin')) {
-    if (userRole !== 'admin') {
+    if (
+      userRole !== 'department_admin' &&
+      userRole !== 'institution_admin' &&
+      userRole !== 'admin' &&
+      userRole !== 'super_admin'
+    ) {
       return NextResponse.redirect(new URL('/unauthorized', request.url));
     }
   }
 
-  // Faculty routes - faculty and admin can access
+  // Faculty routes - faculty and admin roles can access
   if (pathname.startsWith('/faculty')) {
-    if (userRole !== 'faculty' && userRole !== 'admin') {
+    if (
+      userRole !== 'faculty' &&
+      userRole !== 'department_admin' &&
+      userRole !== 'institution_admin' &&
+      userRole !== 'admin' &&
+      userRole !== 'super_admin'
+    ) {
       return NextResponse.redirect(new URL('/unauthorized', request.url));
     }
   }
 
-  // Student routes - student and admin can access
+  // Student routes - student and admin roles can access
   if (pathname.startsWith('/student')) {
-    if (userRole !== 'student' && userRole !== 'admin') {
+    if (
+      userRole !== 'student' &&
+      userRole !== 'department_admin' &&
+      userRole !== 'institution_admin' &&
+      userRole !== 'admin' &&
+      userRole !== 'super_admin'
+    ) {
       return NextResponse.redirect(new URL('/unauthorized', request.url));
     }
   }
