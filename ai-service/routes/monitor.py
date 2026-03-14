@@ -40,6 +40,11 @@ class MonitoringResponse(BaseModel):
     stats: Optional[dict] = None
 
 
+class StopMonitoringRequest(BaseModel):
+    """Request to stop monitoring a class."""
+    classId: str
+
+
 # ─── Routes ───────────────────────────────────────────────────────────────────
 
 @router.post("/start", response_model=MonitoringResponse)
@@ -137,7 +142,7 @@ async def start_monitoring(request: StartMonitoringRequest):
 
 
 @router.post("/stop", response_model=MonitoringResponse)
-async def stop_monitoring(request: BaseModel):
+async def stop_monitoring(request: StopMonitoringRequest):
     """
     Stop attendance monitoring for a class.
     
@@ -149,7 +154,7 @@ async def stop_monitoring(request: BaseModel):
     ```
     """
     try:
-        class_id = request.dict().get("classId")
+        class_id = request.classId
         
         if not class_id:
             raise HTTPException(status_code=400, detail="classId is required")

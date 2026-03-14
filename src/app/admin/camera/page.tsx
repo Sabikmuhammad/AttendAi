@@ -17,6 +17,8 @@
  */
 
 import { useState, useEffect } from 'react';
+import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -48,7 +50,8 @@ interface MonitoringStats {
   class_status: string;
 }
 
-export default function AdminCameraPage() {
+function AdminCameraPageContent() {
+  const searchParams = useSearchParams();
   const [classes, setClasses] = useState<Class[]>([]);
   const [selectedClass, setSelectedClass] = useState<string>('');
   const [monitoring, setMonitoring] = useState(false);
@@ -75,17 +78,28 @@ export default function AdminCameraPage() {
 
   const fetchClasses = async () => {
     try {
-      // Fetch all classes (don't filter by status)
-      const response = await fetch('/api/classes');
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Fetched classes:', data); // Debug log
-        setClasses(data.classes || []);
-      } else {
-        console.error('Failed to fetch classes:', response.status, response.statusText);
+      // Use admin endpoint and keep only monitorable classes.
+      const response = await fetch('/api/admin/classes');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch classes: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const monitorableClasses: Class[] = (data.classes || []).filter(
+        (cls: Class) => cls.status !== 'completed' && cls.status !== 'cancelled'
+      );
+
+      setClasses(monitorableClasses);
+
+      const classFromQuery = searchParams.get('class');
+      if (classFromQuery && monitorableClasses.some((cls) => cls._id === classFromQuery)) {
+        setSelectedClass(classFromQuery);
+      } else if (!selectedClass && monitorableClasses.length > 0) {
+        setSelectedClass(monitorableClasses[0]._id);
       }
     } catch (err) {
       console.error('Failed to fetch classes:', err);
+      setError('Unable to load classes. Please refresh the page.');
     }
   };
 
@@ -93,8 +107,7 @@ export default function AdminCameraPage() {
     if (!selectedClass) return;
 
     try {
-      const AI_SERVICE_URL = process.env.NEXT_PUBLIC_AI_SERVICE_URL || 'http://localhost:8000';
-      const response = await fetch(`${AI_SERVICE_URL}/monitor/status/${selectedClass}`);
+      const response = await fetch(`/api/monitor/status/${selectedClass}`);
       
       if (response.ok) {
         const data = await response.json();
@@ -118,9 +131,7 @@ export default function AdminCameraPage() {
     setMessage(null);
 
     try {
-      const AI_SERVICE_URL = process.env.NEXT_PUBLIC_AI_SERVICE_URL || 'http://localhost:8000';
-      
-      const response = await fetch(`${AI_SERVICE_URL}/monitor/start`, {
+      const response = await fetch('/api/monitor/start', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -134,6 +145,15 @@ export default function AdminCameraPage() {
       const data = await response.json();
 
       if (response.ok && data.success) {
+        // Keep class state in sync for pages that rely on class status.
+        await fetch(`/api/classes/${selectedClass}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ status: 'active' }),
+        });
+
         setMonitoring(true);
         setMessage(data.message);
         setStats(data.stats);
@@ -153,9 +173,7 @@ export default function AdminCameraPage() {
     setLoading(true);
 
     try {
-      const AI_SERVICE_URL = process.env.NEXT_PUBLIC_AI_SERVICE_URL || 'http://localhost:8000';
-      
-      const response = await fetch(`${AI_SERVICE_URL}/monitor/stop`, {
+      const response = await fetch('/api/monitor/stop', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -392,5 +410,21 @@ export default function AdminCameraPage() {
         </Card>
       )}
     </div>
+  );
+}
+
+export default function AdminCameraPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container mx-auto p-6 max-w-4xl">
+          <div className="flex items-center justify-center h-64">
+            <p className="text-gray-600">Loading camera control...</p>
+          </div>
+        </div>
+      }
+    >
+      <AdminCameraPageContent />
+    </Suspense>
   );
 }

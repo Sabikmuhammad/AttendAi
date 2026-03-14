@@ -255,6 +255,15 @@ export default function ClassesManagement() {
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex justify-end gap-2">
+                        <Link href={`/admin/camera?class=${cls._id}`}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-purple-600 hover:text-purple-700"
+                          >
+                            Monitor
+                          </Button>
+                        </Link>
                         {cls.status === 'scheduled' && (
                           <Button
                             variant="ghost"

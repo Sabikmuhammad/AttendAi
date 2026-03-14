@@ -44,10 +44,10 @@ export default function AdminLiveFeedPage() {
 
   const fetchActiveMonitors = async () => {
     try {
-      const response = await fetch(`${AI_SERVICE_URL}/monitor/active`);
+      const response = await fetch('/api/monitor/active');
       if (response.ok) {
         const data = await response.json();
-        setActiveMonitors(data.active_monitors || []);
+        setActiveMonitors(data.classes || data.active_monitors || []);
         setLastUpdate(new Date());
       }
     } catch (err) {
