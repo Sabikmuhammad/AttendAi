@@ -1,18 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Student from '@/models/Student';
 import User from '@/models/User';
-import { withInstitutionScope } from '@/lib/tenant';
+import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
 
 // GET current student profile
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Get session
-    const session = await auth();
-    
-    if (!session || !session.user) {
+    const tenant = await getTenantContext(request);
+
+    if (!tenant.userId || !tenant.institutionId) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -21,14 +19,9 @@ export async function GET() {
 
     await connectDB();
 
-    const institutionId =
-      (session.user as any).institutionId ||
-      process.env.DEFAULT_INSTITUTION_ID ||
-      'default-institution';
-
     // Find the user
     const user = await User.findOne(
-      withInstitutionScope({ _id: session.user.id }, institutionId)
+      withInstitutionScope({ _id: tenant.userId }, tenant.institutionId)
     ).select('-password');
 
     if (!user) {
@@ -48,7 +41,7 @@ export async function GET() {
 
     // Find the student record
     const student: any = await Student.findOne(
-      withInstitutionScope({ userId: user._id }, institutionId)
+      withInstitutionScope({ userId: user._id }, tenant.institutionId)
     ).lean();
 
     if (!student) {

@@ -138,6 +138,19 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error creating faculty:', error);
+
+    if (
+      error &&
+      typeof error === 'object' &&
+      'code' in error &&
+      (error as { code?: number }).code === 11000
+    ) {
+      return NextResponse.json(
+        { success: false, error: 'User with this email already exists' },
+        { status: 409 }
+      );
+    }
+
     return NextResponse.json(
       { success: false, error: 'Failed to create faculty' },
       { status: 500 }

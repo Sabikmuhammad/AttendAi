@@ -4,8 +4,7 @@ import { connectDB } from '@/lib/mongodb';
 import Class from '@/models/Class';
 import Attendance from '@/models/Attendance';
 import Student from '@/models/Student';
-import { auth } from '@/lib/auth';
-import { withInstitutionScope } from '@/lib/tenant';
+import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
 
 // GET specific class details for student
 export async function GET(
@@ -14,9 +13,9 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const session = await auth();
+    const tenant = await getTenantContext(request);
 
-    if (!session || !session.user) {
+    if (!tenant.userId || !tenant.institutionId) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -25,14 +24,9 @@ export async function GET(
 
     await connectDB();
 
-    const institutionId =
-      (session.user as any).institutionId ||
-      process.env.DEFAULT_INSTITUTION_ID ||
-      'default-institution';
-
     // Find the student record
     const student: any = await Student.findOne(
-      withInstitutionScope({ userId: (session.user as any).id }, institutionId)
+      withInstitutionScope({ userId: tenant.userId }, tenant.institutionId)
     ).lean();
 
     if (!student) {
@@ -43,7 +37,7 @@ export async function GET(
     }
 
     // Get class details
-    const classData: any = await Class.findOne(withInstitutionScope({ _id: id }, institutionId))
+    const classData: any = await Class.findOne(withInstitutionScope({ _id: id }, tenant.institutionId))
       .populate('facultyId', 'name email')
       .populate('studentIds', 'name registerNumber')
       .lean();
@@ -69,7 +63,7 @@ export async function GET(
 
     // Get attendance record for this class
     const attendanceRecord = await Attendance.findOne({
-      ...withInstitutionScope({ classId: id, studentId: student._id }, institutionId),
+      ...withInstitutionScope({ classId: id, studentId: student._id }, tenant.institutionId),
     }).lean();
 
     return NextResponse.json({

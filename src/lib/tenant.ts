@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
+import { auth } from '@/lib/auth';
 import { ACCESS_COOKIE_NAME } from '@/lib/auth-cookies';
 import { verifyAccessToken } from '@/lib/jwt';
 
@@ -52,11 +53,41 @@ export async function getTenantContext(req: NextRequest): Promise<TenantContext>
     process.env.DEFAULT_INSTITUTION_ID ||
     'default-institution';
 
+  if (token?.id || tokenRole) {
+    return {
+      userId: token?.id as string | undefined,
+      role: tokenRole,
+      institutionId,
+      departmentIds: tokenDepartmentIds,
+    };
+  }
+
+  try {
+    const session = await auth();
+    if (session?.user) {
+      return {
+        userId: session.user.id,
+        role: session.user.role,
+        institutionId:
+          session.user.institutionId ||
+          headerInstitutionId ||
+          queryInstitutionId ||
+          process.env.DEFAULT_INSTITUTION_ID ||
+          'default-institution',
+        departmentIds: Array.isArray(session.user.departmentIds)
+          ? session.user.departmentIds
+          : [],
+      };
+    }
+  } catch {
+    // Ignore auth() fallback errors and continue with anonymous context.
+  }
+
   return {
-    userId: token?.id as string | undefined,
-    role: tokenRole,
+    userId: undefined,
+    role: undefined,
     institutionId,
-    departmentIds: tokenDepartmentIds,
+    departmentIds: [],
   };
 }
 
