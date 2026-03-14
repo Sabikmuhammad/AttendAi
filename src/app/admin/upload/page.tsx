@@ -2,6 +2,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -22,7 +24,8 @@ interface Student {
   faceEmbedding?: number[];
 }
 
-export default function UploadStudentPhoto() {
+function UploadStudentPhotoContent() {
+  const searchParams = useSearchParams();
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<string>('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -34,6 +37,18 @@ export default function UploadStudentPhoto() {
   useEffect(() => {
     fetchStudents();
   }, []);
+
+  useEffect(() => {
+    const preselectedStudentId = searchParams.get('studentId');
+    if (!preselectedStudentId || students.length === 0) {
+      return;
+    }
+
+    const exists = students.some((student) => student._id === preselectedStudentId);
+    if (exists) {
+      setSelectedStudent(preselectedStudentId);
+    }
+  }, [students, searchParams]);
 
   const fetchStudents = async () => {
     try {
@@ -380,5 +395,19 @@ export default function UploadStudentPhoto() {
         </div>
       </Card>
     </div>
+  );
+}
+
+export default function UploadStudentPhoto() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+        </div>
+      }
+    >
+      <UploadStudentPhotoContent />
+    </Suspense>
   );
 }

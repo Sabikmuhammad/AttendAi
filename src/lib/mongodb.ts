@@ -19,6 +19,42 @@ if (!cached) {
   cached = global.mongooseCache = { conn: null, promise: null, indexesChecked: false };
 }
 
+function isTransientMongoConnectError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : '';
+  return (
+    message.includes('querySrv ENOTFOUND') ||
+    message.includes('ServerSelectionError') ||
+    message.includes('connection <monitor>') ||
+    message.includes('ECONNRESET') ||
+    message.includes('ETIMEDOUT')
+  );
+}
+
+async function connectWithRetry(
+  uri: string,
+  options: Parameters<typeof mongoose.connect>[1],
+  maxRetries = 2
+) {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+    try {
+      return await mongoose.connect(uri, options);
+    } catch (error) {
+      lastError = error;
+
+      if (attempt === maxRetries || !isTransientMongoConnectError(error)) {
+        throw error;
+      }
+
+      const waitMs = (attempt + 1) * 1000;
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+    }
+  }
+
+  throw lastError;
+}
+
 async function ensureDatabaseIndexes() {
   if (cached!.indexesChecked) {
     return;
@@ -59,7 +95,7 @@ export async function connectDB() {
       serverSelectionTimeoutMS: 5000, // Fail fast after 5 seconds
     };
 
-    cached!.promise = mongoose.connect(MONGODB_URI, opts);
+    cached!.promise = connectWithRetry(MONGODB_URI, opts, 2);
   }
 
   try {

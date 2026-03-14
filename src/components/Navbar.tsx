@@ -3,6 +3,7 @@
 import { Bell, Search, User, Menu } from 'lucide-react';
 import { Button } from './ui/button';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 interface NavbarProps {
   title: string;
@@ -12,6 +13,24 @@ interface NavbarProps {
 }
 
 export function Navbar({ title, subtitle, onMobileMenuToggle }: NavbarProps) {
+  const pathname = usePathname();
+
+  const getProfileHref = () => {
+    if (pathname.startsWith('/admin') || pathname.startsWith('/institutionadmin')) {
+      return '/admin/profile';
+    }
+    if (pathname.startsWith('/faculty')) {
+      return '/faculty/profile';
+    }
+    if (pathname.startsWith('/student')) {
+      return '/student/profile';
+    }
+    if (pathname.startsWith('/super-admin') || pathname.startsWith('/super_admin')) {
+      return '/super-admin/profile';
+    }
+    return '/profile';
+  };
+
   return (
     <header className="sticky top-0 z-30 h-14 sm:h-16 bg-white/80 backdrop-blur-md border-b border-gray-200">
       <div className="h-full px-4 sm:px-6 lg:px-8 flex items-center justify-between">
@@ -43,7 +62,7 @@ export function Navbar({ title, subtitle, onMobileMenuToggle }: NavbarProps) {
           </Button>
 
           <div className="ml-1 sm:ml-2">
-            <Link href="/profile">
+            <Link href={getProfileHref()}>
               <Button variant="ghost" size="icon" className="hover:bg-gray-100">
                 <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-purple-600 flex items-center justify-center ring-2 ring-gray-200 hover:ring-gray-300 transition-all">
                   <User className="w-4 h-4 sm:w-5 sm:h-5 text-white" />

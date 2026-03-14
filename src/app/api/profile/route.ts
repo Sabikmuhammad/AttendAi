@@ -1,18 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import User from '@/models/User';
 import Faculty from '@/models/Faculty';
 import Student from '@/models/Student';
-import { withInstitutionScope } from '@/lib/tenant';
+import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Get session
-    const session = await auth();
-    
-    if (!session || !session.user) {
+    // Resolve authenticated user from access-token cookie, with NextAuth fallback.
+    const tenant = await getTenantContext(request);
+    if (!tenant.userId) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -21,15 +19,8 @@ export async function GET() {
 
     await connectDB();
 
-    const institutionId =
-      (session.user as any).institutionId ||
-      process.env.DEFAULT_INSTITUTION_ID ||
-      'default-institution';
-
     // Fetch user data
-    const user = await User.findOne(
-      withInstitutionScope({ _id: session.user.id }, institutionId)
-    ).select('-password');
+    const user = await User.findById(tenant.userId).select('-password');
     
     if (!user) {
       return NextResponse.json(
@@ -37,6 +28,13 @@ export async function GET() {
         { status: 404 }
       );
     }
+
+    const institutionId = String(
+      user.institutionId ||
+      tenant.institutionId ||
+      process.env.DEFAULT_INSTITUTION_ID ||
+      'default-institution'
+    );
 
     // Base profile data
     const profileData: any = {

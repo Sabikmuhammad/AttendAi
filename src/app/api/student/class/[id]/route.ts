@@ -4,6 +4,7 @@ import { connectDB } from '@/lib/mongodb';
 import Class from '@/models/Class';
 import Attendance from '@/models/Attendance';
 import Student from '@/models/Student';
+import User from '@/models/User';
 import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
 
 // GET specific class details for student
@@ -24,9 +25,30 @@ export async function GET(
 
     await connectDB();
 
+    const user = await User.findById(tenant.userId).select('role institutionId').lean<{
+      role?: string;
+      institutionId?: string;
+    }>();
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    if (user.role !== 'student') {
+      return NextResponse.json(
+        { success: false, error: 'User is not a student' },
+        { status: 403 }
+      );
+    }
+
+    const effectiveInstitutionId = String(user.institutionId || tenant.institutionId);
+
     // Find the student record
     const student: any = await Student.findOne(
-      withInstitutionScope({ userId: tenant.userId }, tenant.institutionId)
+      withInstitutionScope({ userId: tenant.userId }, effectiveInstitutionId)
     ).lean();
 
     if (!student) {
@@ -37,7 +59,7 @@ export async function GET(
     }
 
     // Get class details
-    const classData: any = await Class.findOne(withInstitutionScope({ _id: id }, tenant.institutionId))
+    const classData: any = await Class.findOne(withInstitutionScope({ _id: id }, effectiveInstitutionId))
       .populate('facultyId', 'name email')
       .populate('studentIds', 'name registerNumber')
       .lean();
@@ -63,7 +85,7 @@ export async function GET(
 
     // Get attendance record for this class
     const attendanceRecord = await Attendance.findOne({
-      ...withInstitutionScope({ classId: id, studentId: student._id }, tenant.institutionId),
+      ...withInstitutionScope({ classId: id, studentId: student._id }, effectiveInstitutionId),
     }).lean();
 
     return NextResponse.json({

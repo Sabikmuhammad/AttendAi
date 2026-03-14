@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Plus, Trash2, Edit, Upload, Search } from 'lucide-react';
+import Link from 'next/link';
 
 interface Student {
   _id: string;
@@ -219,6 +220,11 @@ export default function StudentsManagement() {
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link href={`/admin/upload?studentId=${student._id}`}>
+                            <Upload className="w-4 h-4 text-blue-600" />
+                          </Link>
+                        </Button>
                         <Button 
                           variant="ghost" 
                           size="sm"

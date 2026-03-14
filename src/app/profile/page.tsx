@@ -3,6 +3,23 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
+function getProfileRouteByRole(role?: string): string {
+  switch (role) {
+    case 'student':
+      return '/student/profile';
+    case 'faculty':
+      return '/faculty/profile';
+    case 'admin':
+    case 'institution_admin':
+    case 'department_admin':
+      return '/admin/profile';
+    case 'super_admin':
+      return '/super-admin/dashboard';
+    default:
+      return '/login';
+  }
+}
+
 export default function ProfileRedirect() {
   const router = useRouter();
 
@@ -14,7 +31,7 @@ export default function ProfileRedirect() {
 
         if (data.success) {
           const userRole = data.profile.role;
-          router.replace(`/${userRole}/profile`);
+          router.replace(getProfileRouteByRole(userRole));
         } else {
           router.replace('/login');
         }

@@ -21,6 +21,23 @@ interface ProfileData {
   section?: string;
 }
 
+function getProfileRouteByRole(role?: string): string {
+  switch (role) {
+    case 'student':
+      return '/student/profile';
+    case 'faculty':
+      return '/faculty/profile';
+    case 'admin':
+    case 'institution_admin':
+    case 'department_admin':
+      return '/admin/profile';
+    case 'super_admin':
+      return '/super-admin/dashboard';
+    default:
+      return '/login';
+  }
+}
+
 export default function StudentProfile() {
   const router = useRouter();
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -38,9 +55,9 @@ export default function StudentProfile() {
       if (data.success) {
         // Check if user is on the correct profile page for their role
         const userRole = data.profile.role;
-        if (userRole !== 'student') {
+        if (getProfileRouteByRole(userRole) !== '/student/profile') {
           // Redirect to correct profile page based on role
-          router.push(`/${userRole}/profile`);
+          router.push(getProfileRouteByRole(userRole));
           return;
         }
         setProfile(data.profile);

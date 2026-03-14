@@ -3,6 +3,8 @@ import { getToken } from 'next-auth/jwt';
 import { auth } from '@/lib/auth';
 import { ACCESS_COOKIE_NAME } from '@/lib/auth-cookies';
 import { verifyAccessToken } from '@/lib/jwt';
+import { connectDB } from '@/lib/mongodb';
+import User from '@/models/User';
 
 export type AppRole =
   | 'super_admin'
@@ -17,6 +19,20 @@ export interface TenantContext {
   role?: AppRole;
   institutionId?: string;
   departmentIds: string[];
+}
+
+async function resolveInstitutionIdFromUser(userId?: string): Promise<string | undefined> {
+  if (!userId) {
+    return undefined;
+  }
+
+  try {
+    await connectDB();
+    const user = await User.findById(userId).select('institutionId').lean<{ institutionId?: string }>();
+    return user?.institutionId;
+  } catch {
+    return undefined;
+  }
 }
 
 export async function getTenantContext(req: NextRequest): Promise<TenantContext> {
@@ -45,17 +61,22 @@ export async function getTenantContext(req: NextRequest): Promise<TenantContext>
   const tokenRole = token?.role as AppRole | undefined;
   const tokenInstitutionId = token?.institutionId as string | undefined;
   const tokenDepartmentIds = (token?.departmentIds as string[] | undefined) || [];
+  const tokenUserId = (token?.id as string | undefined) || (token?.sub as string | undefined);
+  const explicitInstitutionId = tokenInstitutionId || headerInstitutionId || queryInstitutionId;
+
+  let resolvedInstitutionId = explicitInstitutionId;
+  if (!resolvedInstitutionId && tokenUserId) {
+    resolvedInstitutionId = await resolveInstitutionIdFromUser(tokenUserId);
+  }
 
   const institutionId =
-    tokenInstitutionId ||
-    headerInstitutionId ||
-    queryInstitutionId ||
+    resolvedInstitutionId ||
     process.env.DEFAULT_INSTITUTION_ID ||
     'default-institution';
 
-  if (token?.id || tokenRole) {
+  if (tokenUserId || tokenRole || tokenInstitutionId) {
     return {
-      userId: token?.id as string | undefined,
+      userId: tokenUserId,
       role: tokenRole,
       institutionId,
       departmentIds: tokenDepartmentIds,
@@ -65,13 +86,17 @@ export async function getTenantContext(req: NextRequest): Promise<TenantContext>
   try {
     const session = await auth();
     if (session?.user) {
+      const sessionInstitutionId =
+        session.user.institutionId ||
+        headerInstitutionId ||
+        queryInstitutionId ||
+        (await resolveInstitutionIdFromUser(session.user.id));
+
       return {
         userId: session.user.id,
         role: session.user.role,
         institutionId:
-          session.user.institutionId ||
-          headerInstitutionId ||
-          queryInstitutionId ||
+          sessionInstitutionId ||
           process.env.DEFAULT_INSTITUTION_ID ||
           'default-institution',
         departmentIds: Array.isArray(session.user.departmentIds)

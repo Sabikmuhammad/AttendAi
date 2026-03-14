@@ -1,6 +1,6 @@
 /**
  * Root Layout — wraps entire app
- * Includes NextAuth SessionProvider for authentication
+ * Includes app-level providers
  */
 
 import type { Metadata } from "next";

@@ -11,12 +11,18 @@ import { verifyAccessToken } from '@/lib/jwt';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Public routes that don't require authentication
-  const publicRoutes = ['/login', '/register', '/verify-otp', '/api/auth', '/', '/unauthorized'];
-  const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
+  const isPublicRoute =
+    pathname === '/' ||
+    pathname === '/login' ||
+    pathname === '/register' ||
+    pathname === '/verify-otp' ||
+    pathname === '/unauthorized' ||
+    pathname.startsWith('/api/auth') ||
+    pathname.startsWith('/sign-in') ||
+    pathname.startsWith('/sign-up');
 
   // Allow public routes and static files
-  if (isPublicRoute || pathname.includes('._next') || pathname.includes('/api/')) {
+  if (isPublicRoute || pathname.startsWith('/_next') || pathname.includes('/api/')) {
     return NextResponse.next();
   }
 
@@ -100,15 +106,9 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Student routes - student and admin roles can access
+  // Student routes - student only
   if (pathname.startsWith('/student')) {
-    if (
-      userRole !== 'student' &&
-      userRole !== 'department_admin' &&
-      userRole !== 'institution_admin' &&
-      userRole !== 'admin' &&
-      userRole !== 'super_admin'
-    ) {
+    if (userRole !== 'student') {
       return NextResponse.redirect(new URL('/unauthorized', request.url));
     }
   }

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Attendance from '@/models/Attendance';
 import Student from '@/models/Student';
+import User from '@/models/User';
 import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
 
 // GET attendance records for current student
@@ -18,6 +19,27 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const user = await User.findById(tenant.userId).select('role institutionId').lean<{
+      role?: string;
+      institutionId?: string;
+    }>();
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    if (user.role !== 'student') {
+      return NextResponse.json(
+        { success: false, error: 'User is not a student' },
+        { status: 403 }
+      );
+    }
+
+    const effectiveInstitutionId = String(user.institutionId || tenant.institutionId);
+
     // Get studentId from query parameter
     const { searchParams } = new URL(request.url);
     const studentId = searchParams.get('studentId');
@@ -25,7 +47,7 @@ export async function GET(request: NextRequest) {
     let targetStudentId = studentId;
     if (!targetStudentId) {
       const student = await Student.findOne(
-        withInstitutionScope({ userId: tenant.userId }, tenant.institutionId)
+        withInstitutionScope({ userId: tenant.userId }, effectiveInstitutionId)
       )
         .select('_id')
         .lean();
@@ -42,7 +64,7 @@ export async function GET(request: NextRequest) {
 
     // Find attendance records for specific student
     const attendanceRecords = await Attendance.find(
-      withInstitutionScope({ studentId: targetStudentId }, tenant.institutionId)
+      withInstitutionScope({ studentId: targetStudentId }, effectiveInstitutionId)
     )
       .populate('classId', 'courseName courseCode classroomNumber startTime endTime facultyName')
       .populate({

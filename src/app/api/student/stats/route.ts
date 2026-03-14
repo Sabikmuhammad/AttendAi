@@ -21,10 +21,8 @@ export async function GET(request: NextRequest) {
 
     await connectDB();
 
-    // Find the user
-    const user = await User.findOne(
-      withInstitutionScope({ _id: tenant.userId }, tenant.institutionId)
-    );
+    // Resolve tenant from the source of truth (user record) to avoid stale token claims.
+    const user = await User.findById(tenant.userId);
 
     if (!user) {
       return NextResponse.json(
@@ -41,9 +39,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const effectiveInstitutionId = String(user.institutionId || tenant.institutionId);
+
     // Find the student record
     const student: any = await Student.findOne(
-      withInstitutionScope({ userId: user._id }, tenant.institutionId)
+      withInstitutionScope({ userId: user._id }, effectiveInstitutionId)
     ).lean();
 
     if (!student) {
@@ -60,13 +60,13 @@ export async function GET(request: NextRequest) {
           studentIds: student._id,
           status: { $in: ['completed', 'active'] },
         },
-        tenant.institutionId
+        effectiveInstitutionId
       )
     );
 
     // Get total attendance records
     const attendedClasses = await Attendance.countDocuments(
-      withInstitutionScope({ studentId: student._id, status: 'present' }, tenant.institutionId)
+      withInstitutionScope({ studentId: student._id, status: 'present' }, effectiveInstitutionId)
     );
 
     // Get today's classes
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
             $lte: todayEnd,
           },
         },
-        tenant.institutionId
+        effectiveInstitutionId
       )
     )
       .populate('facultyId', 'name')
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
 
     // Get subject-wise attendance
     const attendanceRecords = await Attendance.find(
-      withInstitutionScope({ studentId: student._id }, tenant.institutionId)
+      withInstitutionScope({ studentId: student._id }, effectiveInstitutionId)
     )
       .populate('classId', 'courseName')
       .lean();

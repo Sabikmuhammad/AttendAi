@@ -19,10 +19,8 @@ export async function GET(request: NextRequest) {
 
     await connectDB();
 
-    // Find the user
-    const user = await User.findOne(
-      withInstitutionScope({ _id: tenant.userId }, tenant.institutionId)
-    ).select('-password');
+    // Resolve tenant from the source of truth (user record) to avoid stale token claims.
+    const user = await User.findById(tenant.userId).select('-password');
 
     if (!user) {
       return NextResponse.json(
@@ -39,9 +37,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const effectiveInstitutionId = String(user.institutionId || tenant.institutionId);
+
     // Find the student record
     const student: any = await Student.findOne(
-      withInstitutionScope({ userId: user._id }, tenant.institutionId)
+      withInstitutionScope({ userId: user._id }, effectiveInstitutionId)
     ).lean();
 
     if (!student) {
