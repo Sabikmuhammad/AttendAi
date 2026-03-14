@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,7 +40,7 @@ export default function InstitutionDetailsPage() {
   const [limits, setLimits] = useState<Limits | null>(null);
   const [message, setMessage] = useState('');
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!params?.institutionId) return;
     setLoading(true);
     try {
@@ -56,11 +56,11 @@ export default function InstitutionDetailsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [params?.institutionId]);
 
   useEffect(() => {
     load();
-  }, [params?.institutionId]);
+  }, [load]);
 
   const updateInstitution = async (payload: Partial<InstitutionDetails>) => {
     if (!institution) return;
