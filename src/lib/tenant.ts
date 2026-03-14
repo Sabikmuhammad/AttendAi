@@ -21,6 +21,19 @@ export interface TenantContext {
   departmentIds: string[];
 }
 
+function normalizeInstitutionId(value?: string | null): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const normalized = String(value).trim();
+  if (!normalized || normalized === 'undefined' || normalized === 'null') {
+    return undefined;
+  }
+
+  return normalized;
+}
+
 async function resolveInstitutionIdFromUser(userId?: string): Promise<string | undefined> {
   if (!userId) {
     return undefined;
@@ -41,10 +54,17 @@ export async function getTenantContext(req: NextRequest): Promise<TenantContext>
   if (accessCookie) {
     try {
       const payload = await verifyAccessToken(accessCookie);
+      const resolvedInstitutionId =
+        normalizeInstitutionId(payload.institutionId) ||
+        (await resolveInstitutionIdFromUser(payload.sub));
+
       return {
         userId: payload.sub,
         role: payload.role,
-        institutionId: payload.institutionId,
+        institutionId:
+          resolvedInstitutionId ||
+          process.env.DEFAULT_INSTITUTION_ID ||
+          'default-institution',
         departmentIds: [],
       };
     } catch {
@@ -59,7 +79,7 @@ export async function getTenantContext(req: NextRequest): Promise<TenantContext>
   const queryInstitutionId = searchParams.get('institutionId') || undefined;
 
   const tokenRole = token?.role as AppRole | undefined;
-  const tokenInstitutionId = token?.institutionId as string | undefined;
+  const tokenInstitutionId = normalizeInstitutionId(token?.institutionId as string | undefined);
   const tokenDepartmentIds = (token?.departmentIds as string[] | undefined) || [];
   const tokenUserId = (token?.id as string | undefined) || (token?.sub as string | undefined);
   const explicitInstitutionId = tokenInstitutionId || headerInstitutionId || queryInstitutionId;

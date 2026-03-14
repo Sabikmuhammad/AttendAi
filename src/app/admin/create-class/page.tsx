@@ -97,7 +97,7 @@ export default function CreateClassPage() {
       const response = await fetch('/api/classrooms');
       const data = await response.json();
       if (data.success) {
-        setClassrooms(data.classrooms.filter((c: Classroom) => c.isActive));
+        setClassrooms(data.classrooms.filter((c: Classroom) => c.isActive !== false));
         console.log('✅ Loaded classrooms:', data.classrooms.length);
       } else {
         console.error('Failed to fetch classrooms:', data.error);

@@ -76,6 +76,36 @@ async function ensureDatabaseIndexes() {
     );
   }
 
+  try {
+    const classroomsCollection = mongoose.connection.collection('classrooms');
+    const indexes = await classroomsCollection.indexes();
+    const legacyRoomNumberIndex = indexes.find(
+      (index) => index.name === 'roomNumber_1' && index.unique
+    );
+
+    if (legacyRoomNumberIndex) {
+      await classroomsCollection.dropIndex('roomNumber_1');
+      console.log('[MongoDB] Dropped legacy unique index classrooms.roomNumber_1');
+    }
+
+    const scopedRoomIndex = indexes.find(
+      (index) => index.name === 'institutionId_1_roomNumber_1' && index.unique
+    );
+
+    if (!scopedRoomIndex) {
+      await classroomsCollection.createIndex(
+        { institutionId: 1, roomNumber: 1 },
+        { unique: true, name: 'institutionId_1_roomNumber_1' }
+      );
+      console.log('[MongoDB] Ensured unique index classrooms.institutionId_1_roomNumber_1');
+    }
+  } catch (error) {
+    console.warn(
+      '[MongoDB] Could not verify/drop legacy classroom indexes:',
+      error instanceof Error ? error.message : 'Unknown error'
+    );
+  }
+
   cached!.indexesChecked = true;
 }
 

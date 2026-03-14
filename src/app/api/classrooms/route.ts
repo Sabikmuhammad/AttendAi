@@ -96,6 +96,31 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
   } catch (error: any) {
     console.error('Error creating classroom:', error);
+
+    if (error?.code === 11000) {
+      const hasLegacyRoomNumberIndexConflict =
+        error?.keyPattern?.roomNumber === 1 && !error?.keyPattern?.institutionId;
+
+      if (hasLegacyRoomNumberIndexConflict) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              'Legacy classroom index conflict detected. Please restart the server once and try again.',
+          },
+          { status: 409 }
+        );
+      }
+
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'A classroom with this room number already exists for your institution',
+        },
+        { status: 409 }
+      );
+    }
+
     return NextResponse.json(
       { 
         success: false, 

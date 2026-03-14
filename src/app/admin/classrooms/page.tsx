@@ -24,6 +24,7 @@ interface Classroom {
 export default function ClassroomsPage() {
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'camera' | 'no-camera'>('all');
 
   useEffect(() => {
@@ -33,14 +34,18 @@ export default function ClassroomsPage() {
   const fetchClassrooms = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await fetch('/api/classrooms');
       const data = await response.json();
       
       if (data.success) {
         setClassrooms(data.classrooms);
+      } else {
+        setError(data.error || 'Failed to fetch classrooms');
       }
     } catch (error) {
       console.error('Failed to fetch classrooms:', error);
+      setError('Failed to fetch classrooms');
     } finally {
       setLoading(false);
     }
@@ -126,6 +131,14 @@ export default function ClassroomsPage() {
       </div>
 
       {/* Stats & Filters */}
+      {error && (
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-red-600">{error}</p>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
