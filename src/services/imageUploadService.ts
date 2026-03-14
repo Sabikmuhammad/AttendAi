@@ -5,7 +5,7 @@
  * error handling, and optimized storage configuration.
  */
 
-import cloudinary, { UPLOAD_PRESETS } from '@/lib/cloudinary';
+import cloudinary, { UPLOAD_PRESETS, ensureCloudinaryConfigured } from '@/lib/cloudinary';
 import { UploadApiResponse, UploadApiErrorResponse } from 'cloudinary';
 
 /**
@@ -92,6 +92,8 @@ export async function uploadStudentImage(
   studentId: string
 ): Promise<UploadResult> {
   try {
+    ensureCloudinaryConfigured();
+
     // Validate file
     validateImageFile(file);
 
@@ -141,6 +143,8 @@ export async function uploadStudentDataset(
   files: File[],
   studentId: string
 ): Promise<UploadResult[]> {
+  ensureCloudinaryConfigured();
+
   const uploadPromises = files.map(async (file, index) => {
     validateImageFile(file);
     const dataUri = await fileToDataUri(file);
@@ -173,5 +177,6 @@ export async function uploadStudentDataset(
  * @param publicId - The Cloudinary public ID of the image
  */
 export async function deleteImage(publicId: string): Promise<void> {
+  ensureCloudinaryConfigured();
   await cloudinary.uploader.destroy(publicId);
 }

@@ -7,26 +7,39 @@
 
 import { v2 as cloudinary } from 'cloudinary';
 
-// Validate required environment variables
-if (!process.env.CLOUDINARY_CLOUD_NAME) {
-  throw new Error('CLOUDINARY_CLOUD_NAME is not defined in environment variables');
-}
+let isConfigured = false;
 
-if (!process.env.CLOUDINARY_API_KEY) {
-  throw new Error('CLOUDINARY_API_KEY is not defined in environment variables');
-}
+export function ensureCloudinaryConfigured(): void {
+  if (isConfigured) {
+    return;
+  }
 
-if (!process.env.CLOUDINARY_API_SECRET) {
-  throw new Error('CLOUDINARY_API_SECRET is not defined in environment variables');
-}
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
 
-// Configure Cloudinary instance
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-  secure: true, // Always use HTTPS
-});
+  if (!cloudName) {
+    throw new Error('CLOUDINARY_CLOUD_NAME is not defined in environment variables');
+  }
+
+  if (!apiKey) {
+    throw new Error('CLOUDINARY_API_KEY is not defined in environment variables');
+  }
+
+  if (!apiSecret) {
+    throw new Error('CLOUDINARY_API_SECRET is not defined in environment variables');
+  }
+
+  // Configure Cloudinary instance lazily so module import doesn't fail during build.
+  cloudinary.config({
+    cloud_name: cloudName,
+    api_key: apiKey,
+    api_secret: apiSecret,
+    secure: true,
+  });
+
+  isConfigured = true;
+}
 
 /**
  * Upload configuration presets for different use cases
