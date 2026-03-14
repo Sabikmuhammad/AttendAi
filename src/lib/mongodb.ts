@@ -122,7 +122,10 @@ export async function connectDB() {
     const opts = {
       bufferCommands: false,
       maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000, // Fail fast after 5 seconds
+      // Atlas M0 free clusters can take 30-60s to auto-resume from pause
+      serverSelectionTimeoutMS: 45000,
+      connectTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
     };
 
     cached!.promise = connectWithRetry(MONGODB_URI, opts, 2);
@@ -134,8 +137,15 @@ export async function connectDB() {
     console.log('[MongoDB] Connected successfully');
   } catch (e) {
     cached!.promise = null;
-    console.error('[MongoDB] Connection failed:', e instanceof Error ? e.message : 'Unknown error');
-    console.error('[MongoDB] Check MONGODB-FIX.md for troubleshooting steps');
+    const msg = e instanceof Error ? e.message : 'Unknown error';
+    console.error('[MongoDB] Connection failed:', msg);
+    if (msg.includes('Server selection timed out') || msg.includes('ServerSelectionError')) {
+      console.error(
+        '[MongoDB] LIKELY CAUSE: Your Atlas cluster may be paused.\n' +
+        '  → Visit https://cloud.mongodb.com → Clusters → Resume cluster\n' +
+        '  → Also check Network Access: add your IP or 0.0.0.0/0'
+      );
+    }
     throw e;
   }
 

@@ -3,12 +3,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Class from '@/models/Class';
 import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
+import { synchronizeClassStatuses } from '@/lib/class-status';
 
 // GET all classes
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
     const tenant = await getTenantContext(req);
+
+    await synchronizeClassStatuses(
+      tenant.institutionId || process.env.DEFAULT_INSTITUTION_ID || 'default-institution'
+    );
 
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
@@ -70,8 +75,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const parsedStartTime = new Date(startTime);
+    const parsedEndTime = new Date(endTime);
+
+    if (Number.isNaN(parsedStartTime.getTime()) || Number.isNaN(parsedEndTime.getTime())) {
+      return NextResponse.json(
+        { error: 'Invalid start or end time' },
+        { status: 400 }
+      );
+    }
+
     // Validate time
-    if (new Date(endTime) <= new Date(startTime)) {
+    if (parsedEndTime <= parsedStartTime) {
       return NextResponse.json(
         { error: 'End time must be after start time' },
         { status: 400 }
@@ -86,8 +101,8 @@ export async function POST(req: NextRequest) {
       facultyName,
       department,
       institutionId: tenant.institutionId,
-      startTime: new Date(startTime),
-      endTime: new Date(endTime),
+      startTime: parsedStartTime,
+      endTime: parsedEndTime,
       studentIds,
       status: 'scheduled',
     });

@@ -16,7 +16,7 @@
  * - Check attendance statistics
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -50,6 +50,12 @@ interface MonitoringStats {
   class_status: string;
 }
 
+interface DetectedStudent {
+  studentId: string;
+  confidence: number;
+  timestamp?: string;
+}
+
 function AdminCameraPageContent() {
   const searchParams = useSearchParams();
   const [classes, setClasses] = useState<Class[]>([]);
@@ -59,6 +65,12 @@ function AdminCameraPageContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [cameraSource, setCameraSource] = useState<'server' | 'browser'>('server');
+  const [browserStream, setBrowserStream] = useState<MediaStream | null>(null);
+  const [capturedFrames, setCapturedFrames] = useState(0);
+  const [detectedStudentsCount, setDetectedStudentsCount] = useState(0);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Fetch active classes on mount
   useEffect(() => {
@@ -67,14 +79,40 @@ function AdminCameraPageContent() {
 
   // Poll for stats when monitoring
   useEffect(() => {
-    if (monitoring && selectedClass) {
+    if (monitoring && selectedClass && cameraSource === 'server') {
       const interval = setInterval(() => {
         fetchMonitoringStats();
       }, 5000); // Update every 5 seconds
 
       return () => clearInterval(interval);
     }
-  }, [monitoring, selectedClass]);
+  }, [monitoring, selectedClass, cameraSource]);
+
+  // Poll browser-camera detections while monitoring.
+  useEffect(() => {
+    if (monitoring && selectedClass && cameraSource === 'browser') {
+      const interval = setInterval(() => {
+        captureAndDetect();
+      }, 3000);
+
+      return () => clearInterval(interval);
+    }
+  }, [monitoring, selectedClass, cameraSource, browserStream]);
+
+  // Attach stream to video element.
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.srcObject = browserStream;
+    }
+  }, [browserStream]);
+
+  useEffect(() => {
+    return () => {
+      if (browserStream) {
+        browserStream.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, [browserStream]);
 
   const fetchClasses = async () => {
     try {
@@ -120,6 +158,66 @@ function AdminCameraPageContent() {
     }
   };
 
+  const markAttendance = async (students: DetectedStudent[]) => {
+    if (!selectedClass || students.length === 0) return;
+
+    await fetch('/api/attendance/mark', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        classId: selectedClass,
+        students: students.map((student) => ({
+          studentId: student.studentId,
+          detectedTime: student.timestamp || new Date().toISOString(),
+          confidence: student.confidence,
+        })),
+      }),
+    });
+  };
+
+  const captureAndDetect = async () => {
+    if (!videoRef.current || !canvasRef.current || !selectedClass) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+
+    if (!context || video.videoWidth === 0 || video.videoHeight === 0) {
+      return;
+    }
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+
+      try {
+        const formData = new FormData();
+        formData.append('image', blob, 'frame.jpg');
+        formData.append('classId', selectedClass);
+
+        const response = await fetch('/api/detect-faces', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await response.json();
+        setCapturedFrames((prev) => prev + 1);
+
+        if (data.success && Array.isArray(data.detectedStudents) && data.detectedStudents.length > 0) {
+          setDetectedStudentsCount((prev) => prev + data.detectedStudents.length);
+          await markAttendance(data.detectedStudents);
+        }
+      } catch (err) {
+        console.error('Browser camera detect failed:', err);
+      }
+    }, 'image/jpeg', 0.8);
+  };
+
   const handleStartMonitoring = async () => {
     if (!selectedClass) {
       setError('Please select a class');
@@ -131,6 +229,33 @@ function AdminCameraPageContent() {
     setMessage(null);
 
     try {
+      if (cameraSource === 'browser') {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
+        });
+
+        setBrowserStream(stream);
+        setCapturedFrames(0);
+        setDetectedStudentsCount(0);
+
+        await fetch(`/api/classes/${selectedClass}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ status: 'active' }),
+        });
+
+        setMonitoring(true);
+        setMessage('Browser camera monitoring started');
+        return;
+      }
+
       const response = await fetch('/api/monitor/start', {
         method: 'POST',
         headers: {
@@ -173,6 +298,17 @@ function AdminCameraPageContent() {
     setLoading(true);
 
     try {
+      if (cameraSource === 'browser') {
+        if (browserStream) {
+          browserStream.getTracks().forEach((track) => track.stop());
+          setBrowserStream(null);
+        }
+        setMonitoring(false);
+        setMessage('Browser camera monitoring stopped');
+        setStats(null);
+        return;
+      }
+
       const response = await fetch('/api/monitor/stop', {
         method: 'POST',
         headers: {
@@ -264,13 +400,30 @@ function AdminCameraPageContent() {
             </select>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="camera-source">Camera Source</Label>
+            <select
+              id="camera-source"
+              className="w-full px-3 py-2 border rounded-md"
+              value={cameraSource}
+              onChange={(e) => setCameraSource(e.target.value as 'server' | 'browser')}
+              disabled={monitoring}
+            >
+              <option value="server">Server Webcam / RTSP</option>
+              <option value="browser">Browser Camera (Mobile Supported)</option>
+            </select>
+            <p className="text-xs text-muted-foreground">
+              Choose Browser Camera to use your phone camera directly from mobile browser.
+            </p>
+          </div>
+
           <div className="flex gap-4">
             <Button
               onClick={handleStartMonitoring}
               disabled={!selectedClass || monitoring || loading}
               className="flex-1"
             >
-              {loading ? '⏳ Starting...' : '📷 Start Monitoring'}
+              {loading ? '⏳ Starting...' : cameraSource === 'browser' ? '📱 Start Mobile Camera' : '📷 Start Monitoring'}
             </Button>
 
             <Button
@@ -296,6 +449,29 @@ function AdminCameraPageContent() {
             <Alert variant="destructive">
               <AlertDescription>❌ {error}</AlertDescription>
             </Alert>
+          )}
+
+          {monitoring && cameraSource === 'browser' && (
+            <div className="space-y-3">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full rounded-md border bg-black max-h-80 object-cover"
+              />
+              <canvas ref={canvasRef} className="hidden" />
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-md bg-gray-50 p-3 border">
+                  <p className="text-muted-foreground">Captured Frames</p>
+                  <p className="font-semibold">{capturedFrames}</p>
+                </div>
+                <div className="rounded-md bg-gray-50 p-3 border">
+                  <p className="text-muted-foreground">Detected Students</p>
+                  <p className="font-semibold">{detectedStudentsCount}</p>
+                </div>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>

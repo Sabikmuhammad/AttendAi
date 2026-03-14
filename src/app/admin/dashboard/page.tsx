@@ -3,11 +3,11 @@ import Student from '@/models/Student';
 import Class from '@/models/Class';
 import Attendance from '@/models/Attendance';
 import { Card } from '@/components/ui/card';
-import { Users, BookOpen, TrendingUp, Activity } from 'lucide-react';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { ACCESS_COOKIE_NAME } from '@/lib/auth-cookies';
 import { verifyAccessToken } from '@/lib/jwt';
+import { synchronizeClassStatuses } from '@/lib/class-status';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -30,6 +30,7 @@ export default async function AdminDashboard() {
 
   // Connect to database and fetch stats
   await connectDB();
+  await synchronizeClassStatuses(institutionId);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [totalStudents, totalClasses, todayClasses, attendanceRecords] = await Promise.all([
@@ -37,6 +38,7 @@ export default async function AdminDashboard() {
     Class.countDocuments({ institutionId }),
     Class.countDocuments({
       institutionId,
+      status: 'active',
       startTime: {
         $gte: new Date(new Date().setHours(0, 0, 0, 0)),
         $lt: new Date(new Date().setHours(23, 59, 59, 999)),
@@ -78,25 +80,25 @@ export default async function AdminDashboard() {
         <StatCard
           title="Total Students"
           value={totalStudents}
-          icon={Users}
+          icon="users"
           color="blue"
         />
         <StatCard
           title="Active Classes Today"
           value={todayClasses}
-          icon={BookOpen}
+          icon="book"
           color="purple"
         />
         <StatCard
           title="Attendance Rate"
           value={`${attendancePercentage}%`}
-          icon={TrendingUp}
+          icon="trend"
           color="green"
         />
         <StatCard
           title="Total Attendance Records"
           value={attendanceRecords}
-          icon={Activity}
+          icon="activity"
           color="orange"
         />
       </div>
@@ -199,13 +201,12 @@ export default async function AdminDashboard() {
 function StatCard({
   title,
   value,
-  icon: Icon,
+  icon,
   color,
 }: {
   title: string;
   value: string | number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  icon: any;
+  icon: 'users' | 'book' | 'trend' | 'activity';
   color: 'blue' | 'purple' | 'green' | 'orange';
 }) {
   const colorClasses = {
@@ -213,6 +214,13 @@ function StatCard({
     purple: 'bg-purple-500/10 text-purple-600',
     green: 'bg-green-500/10 text-green-600',
     orange: 'bg-orange-500/10 text-orange-600',
+  };
+
+  const iconText = {
+    users: 'U',
+    book: 'C',
+    trend: '%',
+    activity: 'R',
   };
 
   return (
@@ -223,7 +231,9 @@ function StatCard({
           <p className="text-2xl sm:text-3xl font-bold text-gray-900">{value}</p>
         </div>
         <div className={`${colorClasses[color]} p-3 sm:p-4 rounded-xl flex-shrink-0`}>
-          <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
+          <span className="w-5 h-5 sm:w-6 sm:h-6 inline-flex items-center justify-center font-bold">
+            {iconText[icon]}
+          </span>
         </div>
       </div>
     </Card>

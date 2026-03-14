@@ -3,12 +3,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Class from '@/models/Class';
 import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
+import { synchronizeClassStatuses } from '@/lib/class-status';
 
 // GET all classes for admin dashboard
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
     const tenant = await getTenantContext(request);
+
+    await synchronizeClassStatuses(
+      tenant.institutionId || process.env.DEFAULT_INSTITUTION_ID || 'default-institution'
+    );
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');

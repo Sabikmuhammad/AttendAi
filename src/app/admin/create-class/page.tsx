@@ -159,6 +159,9 @@ export default function CreateClassPage() {
     setLoading(true);
 
     try {
+      const startTimeIso = new Date(formData.startTime).toISOString();
+      const endTimeIso = new Date(formData.endTime).toISOString();
+
       const response = await fetch('/api/classes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -169,8 +172,8 @@ export default function CreateClassPage() {
           facultyId: formData.facultyId,
           facultyName: formData.facultyName,
           department: formData.department,
-          startTime: formData.startTime,
-          endTime: formData.endTime,
+          startTime: startTimeIso,
+          endTime: endTimeIso,
           studentIds: selectedStudents,
           monitoringMode: formData.monitoringMode,
           rtspUrl: formData.rtspUrl || undefined,
