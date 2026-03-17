@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -10,8 +10,9 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Loader2, Mail, Lock, User, Shield, GraduationCap, Users, Hash, Building2 } from 'lucide-react';
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -27,6 +28,15 @@ export default function RegisterPage() {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isCodeLocked, setIsCodeLocked] = useState(false);
+
+  useEffect(() => {
+    const code = searchParams.get('institutionCode');
+    if (code) {
+      setFormData((prev) => ({ ...prev, institutionCode: code.toUpperCase() }));
+      setIsCodeLocked(true);
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,7 +121,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-50 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-8 bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-50 relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
@@ -125,18 +135,18 @@ export default function RegisterPage() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-2xl relative z-10"
       >
-        <div className="text-center mb-8">
+        <div className="text-center mb-6 sm:mb-8">
           <motion.h1
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-indigo-600 mb-2"
+            className="text-3xl sm:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-indigo-600 mb-2"
           >
             Join AttendAI
           </motion.h1>
           <p className="text-gray-600">Create your account and get started</p>
         </div>
 
-        <Card className="p-8 shadow-2xl border-0 bg-white/80 backdrop-blur-xl">
+        <Card className="p-5 sm:p-8 shadow-2xl border-0 bg-white/80 backdrop-blur-xl">
           {error && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
@@ -161,7 +171,7 @@ export default function RegisterPage() {
                   placeholder="John Doe"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="pl-10 h-12 border-gray-300 focus:border-violet-500 focus:ring-violet-500"
+                  className="pl-10 h-12 text-base border-gray-300 focus:border-violet-500 focus:ring-violet-500"
                   required
                   disabled={isLoading}
                 />
@@ -181,7 +191,7 @@ export default function RegisterPage() {
                   placeholder="you@example.com"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="pl-10 h-12 border-gray-300 focus:border-violet-500 focus:ring-violet-500"
+                  className="pl-10 h-12 text-base border-gray-300 focus:border-violet-500 focus:ring-violet-500"
                   required
                   disabled={isLoading}
                 />
@@ -203,9 +213,10 @@ export default function RegisterPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, institutionCode: e.target.value.toUpperCase() })
                   }
-                  className="pl-10 h-12 border-gray-300 focus:border-violet-500 focus:ring-violet-500"
+                  className={`pl-10 h-12 text-base border-gray-300 focus:border-violet-500 focus:ring-violet-500 ${isCodeLocked ? 'bg-gray-100 cursor-not-allowed text-gray-500' : ''}`}
                   required
-                  disabled={isLoading}
+                  disabled={isLoading || isCodeLocked}
+                  readOnly={isCodeLocked}
                 />
               </div>
             </div>
@@ -213,13 +224,13 @@ export default function RegisterPage() {
             {/* Role Selection */}
             <div className="space-y-3">
               <Label className="text-gray-700 font-medium">Select Your Role</Label>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <motion.button
                   type="button"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setFormData({ ...formData, role: 'student' })}
-                  className={`p-4 rounded-lg border-2 transition-all ${
+                  className={`min-h-[88px] p-4 rounded-lg border-2 transition-all ${
                     formData.role === 'student'
                       ? 'border-violet-500 bg-violet-50'
                       : 'border-gray-200 bg-white hover:border-gray-300'
@@ -240,7 +251,7 @@ export default function RegisterPage() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setFormData({ ...formData, role: 'faculty' })}
-                  className={`p-4 rounded-lg border-2 transition-all ${
+                  className={`min-h-[88px] p-4 rounded-lg border-2 transition-all ${
                     formData.role === 'faculty'
                       ? 'border-violet-500 bg-violet-50'
                       : 'border-gray-200 bg-white hover:border-gray-300'
@@ -272,7 +283,7 @@ export default function RegisterPage() {
                     placeholder="e.g., STU2024001"
                     value={formData.studentId}
                     onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
-                    className="pl-10 h-12 border-gray-300 focus:border-violet-500 focus:ring-violet-500"
+                    className="pl-10 h-12 text-base border-gray-300 focus:border-violet-500 focus:ring-violet-500"
                     required
                     disabled={isLoading}
                   />
@@ -291,7 +302,7 @@ export default function RegisterPage() {
                     placeholder="e.g., FAC2024001"
                     value={formData.facultyId}
                     onChange={(e) => setFormData({ ...formData, facultyId: e.target.value })}
-                    className="pl-10 h-12 border-gray-300 focus:border-violet-500 focus:ring-violet-500"
+                    className="pl-10 h-12 text-base border-gray-300 focus:border-violet-500 focus:ring-violet-500"
                     required
                     disabled={isLoading}
                   />
@@ -312,7 +323,7 @@ export default function RegisterPage() {
                   placeholder="e.g., Computer Science"
                   value={formData.department}
                   onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  className="pl-10 h-12 border-gray-300 focus:border-violet-500 focus:ring-violet-500"
+                  className="pl-10 h-12 text-base border-gray-300 focus:border-violet-500 focus:ring-violet-500"
                   required
                   disabled={isLoading}
                 />
@@ -334,7 +345,7 @@ export default function RegisterPage() {
                       placeholder="e.g., A, B, C"
                       value={formData.section}
                       onChange={(e) => setFormData({ ...formData, section: e.target.value })}
-                      className="pl-10 h-12 border-gray-300 focus:border-violet-500 focus:ring-violet-500"
+                      className="pl-10 h-12 text-base border-gray-300 focus:border-violet-500 focus:ring-violet-500"
                       required
                       disabled={isLoading}
                     />
@@ -350,7 +361,7 @@ export default function RegisterPage() {
                     id="semester"
                     value={formData.semester}
                     onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
-                    className="w-full h-12 px-4 border border-gray-300 rounded-lg focus:border-violet-500 focus:ring-2 focus:ring-violet-500 focus:ring-offset-0 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full h-12 px-4 text-base border border-gray-300 rounded-lg focus:border-violet-500 focus:ring-2 focus:ring-violet-500 focus:ring-offset-0 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     required
                     disabled={isLoading}
                   >
@@ -381,7 +392,7 @@ export default function RegisterPage() {
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="pl-10 h-12 border-gray-300 focus:border-violet-500 focus:ring-violet-500"
+                  className="pl-10 h-12 text-base border-gray-300 focus:border-violet-500 focus:ring-violet-500"
                   required
                   disabled={isLoading}
                 />
@@ -402,7 +413,7 @@ export default function RegisterPage() {
                   placeholder="••••••••"
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  className="pl-10 h-12 border-gray-300 focus:border-violet-500 focus:ring-violet-500"
+                  className="pl-10 h-12 text-base border-gray-300 focus:border-violet-500 focus:ring-violet-500"
                   required
                   disabled={isLoading}
                 />
@@ -470,5 +481,13 @@ export default function RegisterPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-violet-50"><Loader2 className="w-8 h-8 animate-spin text-violet-600" /></div>}>
+      <RegisterForm />
+    </Suspense>
   );
 }

@@ -1,1 +1,5 @@
-export { default } from '@/app/admin/classrooms/page';
+import ClassroomsPage from '@/app/admin/classrooms/page';
+
+export default function CamerasPage() {
+  return <ClassroomsPage />;
+}

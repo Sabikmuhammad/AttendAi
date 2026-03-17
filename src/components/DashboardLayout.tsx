@@ -28,7 +28,7 @@ export function DashboardLayout({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
       {/* Mobile Overlay */}
       {isMobileMenuOpen && (
         <div 
@@ -46,7 +46,7 @@ export function DashboardLayout({
       />
       
       {/* Main Content Area */}
-      <div className="lg:pl-64">
+      <div className="lg:pl-64 min-w-0">
         {/* Sticky Navbar */}
         <Navbar 
           title={title} 
@@ -55,8 +55,8 @@ export function DashboardLayout({
         />
         
         {/* Page Content */}
-        <main className="p-4 sm:p-6 lg:p-8">
-          <div className="max-w-[1600px] mx-auto">
+        <main className="p-3 sm:p-5 lg:p-8">
+          <div className="max-w-[1600px] mx-auto min-w-0">
             {children}
           </div>
         </main>

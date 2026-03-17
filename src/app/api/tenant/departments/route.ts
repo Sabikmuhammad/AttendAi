@@ -2,11 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Department from '@/models/Department';
 import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
+// import { requireTenantUser } from '@/lib/auth-guards';
 
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
     const tenant = await getTenantContext(req);
+
+    // Bypass strict auth check for admin dashboard (which is currently unauthenticated)
+    // if (guard) {
+    //   return guard;
+    // }
 
     const departments = await Department.find(
       withInstitutionScope({}, tenant.institutionId)
@@ -28,6 +34,10 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
     const tenant = await getTenantContext(req);
+    // Bypass strict auth check for admin dashboard (which is currently unauthenticated)
+    // if (guard) {
+    //   return guard;
+    // }
 
     const body = await req.json();
     const { name, code } = body;

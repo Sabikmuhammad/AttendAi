@@ -19,7 +19,8 @@ import Student from '@/models/Student';
 import User from '@/models/User';
 import { uploadStudentImage, ImageUploadError } from '@/services/imageUploadService';
 import { generateFaceEmbedding, EmbeddingServiceError } from '@/services/embeddingService';
-import { withInstitutionScope } from '@/lib/tenant';
+import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
+import { requireTenantUser } from '@/lib/auth-guards';
 
 /**
  * Response format for successful upload
@@ -248,7 +249,13 @@ export async function POST(request: NextRequest) {
  * 
  * Health check endpoint
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const tenant = await getTenantContext(request);
+  const guard = requireTenantUser(tenant, {
+    roles: ['super_admin', 'institution_admin', 'department_admin', 'admin'],
+  });
+  if (guard) return guard;
+
   return NextResponse.json({
     success: true,
     endpoint: '/api/admin/upload-student-image',

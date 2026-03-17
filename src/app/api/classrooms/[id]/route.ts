@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Classroom from '@/models/Classroom';
 import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
+import { requireTenantUser } from '@/lib/auth-guards';
 
 // GET - Fetch single classroom
 export async function GET(
@@ -11,6 +12,8 @@ export async function GET(
   try {
     await connectDB();
     const tenant = await getTenantContext(request);
+    const guard = requireTenantUser(tenant);
+    if (guard) return guard;
     const { id } = await params;
 
     const classroom = await Classroom.findOne(

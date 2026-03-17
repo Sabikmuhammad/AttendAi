@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Class from '@/models/Class';
 import { getTenantContext } from '@/lib/tenant';
+import { requireServiceToken } from '@/lib/auth-guards';
 
 /**
  * API route to automatically activate classes based on start time
@@ -9,6 +10,12 @@ import { getTenantContext } from '@/lib/tenant';
  */
 export async function POST(request: NextRequest) {
   try {
+    const serviceGuard = requireServiceToken(
+      request.headers,
+      process.env.ATTENDANCE_SERVICE_TOKEN
+    );
+    if (serviceGuard) return serviceGuard;
+
     await connectDB();
     const tenant = await getTenantContext(request);
 
@@ -72,6 +79,12 @@ export async function POST(request: NextRequest) {
 // GET method to check status without making changes
 export async function GET(request: NextRequest) {
   try {
+    const serviceGuard = requireServiceToken(
+      request.headers,
+      process.env.ATTENDANCE_SERVICE_TOKEN
+    );
+    if (serviceGuard) return serviceGuard;
+
     await connectDB();
     const tenant = await getTenantContext(request);
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Institution from '@/models/Institution';
 import { getTenantContext, isSuperAdmin } from '@/lib/tenant';
+import { activateTrial } from '@/lib/trial';
 
 export async function GET(req: NextRequest) {
   try {
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, code, subdomain, domain, address, contactEmail, plan } = body;
+    const { name, code, subdomain, domain, address, contactEmail } = body;
 
     const normalizedSubdomain = String(subdomain || domain || '')
       .toLowerCase()
@@ -61,8 +62,11 @@ export async function POST(req: NextRequest) {
       address,
       contactEmail,
       status: 'trial',
-      plan: ['starter', 'professional', 'enterprise'].includes(String(plan)) ? plan : 'starter',
+      plan: 'trial',
     });
+
+    // Auto-activate 14-day free trial
+    await activateTrial(String(institution._id));
 
     return NextResponse.json(
       { success: true, institution, message: 'Institution created successfully' },

@@ -1,6 +1,4 @@
 import { NextRequest } from 'next/server';
-import { getToken } from 'next-auth/jwt';
-import { auth } from '@/lib/auth';
 import { ACCESS_COOKIE_NAME } from '@/lib/auth-cookies';
 import { verifyAccessToken } from '@/lib/jwt';
 import { connectDB } from '@/lib/mongodb';
@@ -21,129 +19,73 @@ export interface TenantContext {
   departmentIds: string[];
 }
 
-function normalizeInstitutionId(value?: string | null): string | undefined {
-  if (!value) {
-    return undefined;
-  }
-
-  const normalized = String(value).trim();
-  if (!normalized || normalized === 'undefined' || normalized === 'null') {
-    return undefined;
-  }
-
-  return normalized;
-}
-
-async function resolveInstitutionIdFromUser(userId?: string): Promise<string | undefined> {
-  if (!userId) {
-    return undefined;
-  }
-
+async function resolveInstitutionFromUser(userId: string): Promise<string | undefined> {
   try {
     await connectDB();
     const user = await User.findById(userId).select('institutionId').lean<{ institutionId?: string }>();
-    return user?.institutionId;
+    return user?.institutionId || undefined;
   } catch {
     return undefined;
   }
 }
 
+function normalize(value?: string | null): string | undefined {
+  if (!value) return undefined;
+  const v = String(value).trim();
+  return v && v !== 'undefined' && v !== 'null' ? v : undefined;
+}
+
+/**
+ * Resolves the tenant context for an API route request.
+ *
+ * Resolution order (first wins):
+ *   1. JWT access token cookie (institutionId embedded at login)
+ *   2. User DB lookup          (fallback for legacy tokens)
+ */
 export async function getTenantContext(req: NextRequest): Promise<TenantContext> {
+  // ── 1. JWT cookie ─────────────────────────────────────────────────────────
   const accessCookie = req.cookies.get(ACCESS_COOKIE_NAME)?.value;
 
   if (accessCookie) {
     try {
       const payload = await verifyAccessToken(accessCookie);
-      const resolvedInstitutionId =
-        normalizeInstitutionId(payload.institutionId) ||
-        (await resolveInstitutionIdFromUser(payload.sub));
+      const jwtInstitutionId = normalize(payload.institutionId);
+
+      const institutionId =
+        jwtInstitutionId ||
+        (await resolveInstitutionFromUser(payload.sub)) ||
+        process.env.DEFAULT_INSTITUTION_ID;
 
       return {
         userId: payload.sub,
-        role: payload.role,
-        institutionId:
-          resolvedInstitutionId ||
-          process.env.DEFAULT_INSTITUTION_ID ||
-          'default-institution',
+        role: payload.role as AppRole,
+        institutionId,
         departmentIds: [],
       };
     } catch {
-      // Fall back to legacy NextAuth token handling for compatibility.
+      // Invalid token — fall through
     }
   }
 
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-
-  const { searchParams } = new URL(req.url);
-  const headerInstitutionId = req.headers.get('x-institution-id') || undefined;
-  const queryInstitutionId = searchParams.get('institutionId') || undefined;
-
-  const tokenRole = token?.role as AppRole | undefined;
-  const tokenInstitutionId = normalizeInstitutionId(token?.institutionId as string | undefined);
-  const tokenDepartmentIds = (token?.departmentIds as string[] | undefined) || [];
-  const tokenUserId = (token?.id as string | undefined) || (token?.sub as string | undefined);
-  const explicitInstitutionId = tokenInstitutionId || headerInstitutionId || queryInstitutionId;
-
-  let resolvedInstitutionId = explicitInstitutionId;
-  if (!resolvedInstitutionId && tokenUserId) {
-    resolvedInstitutionId = await resolveInstitutionIdFromUser(tokenUserId);
-  }
-
-  const institutionId =
-    resolvedInstitutionId ||
-    process.env.DEFAULT_INSTITUTION_ID ||
-    'default-institution';
-
-  if (tokenUserId || tokenRole || tokenInstitutionId) {
-    return {
-      userId: tokenUserId,
-      role: tokenRole,
-      institutionId,
-      departmentIds: tokenDepartmentIds,
-    };
-  }
-
-  try {
-    const session = await auth();
-    if (session?.user) {
-      const sessionInstitutionId =
-        session.user.institutionId ||
-        headerInstitutionId ||
-        queryInstitutionId ||
-        (await resolveInstitutionIdFromUser(session.user.id));
-
-      return {
-        userId: session.user.id,
-        role: session.user.role,
-        institutionId:
-          sessionInstitutionId ||
-          process.env.DEFAULT_INSTITUTION_ID ||
-          'default-institution',
-        departmentIds: Array.isArray(session.user.departmentIds)
-          ? session.user.departmentIds
-          : [],
-      };
-    }
-  } catch {
-    // Ignore auth() fallback errors and continue with anonymous context.
-  }
-
+  // ── 2. No auth — return default anonymous context ────────────────────────
   return {
     userId: undefined,
     role: undefined,
-    institutionId,
+    institutionId: process.env.DEFAULT_INSTITUTION_ID,
     departmentIds: [],
   };
 }
 
+/**
+ * Appends institutionId to any Mongoose filter object.
+ * Every DB query must go through this to prevent cross-tenant data leakage.
+ */
 export function withInstitutionScope<T extends Record<string, unknown>>(
   filter: T,
   institutionId?: string
 ): T & { institutionId: string } {
-  return {
-    ...filter,
-    institutionId: institutionId || process.env.DEFAULT_INSTITUTION_ID || 'default-institution',
-  };
+  const id = institutionId || process.env.DEFAULT_INSTITUTION_ID || 'default-institution';
+  return { ...filter, institutionId: id };
 }
 
 export function isSuperAdmin(role?: AppRole): boolean {

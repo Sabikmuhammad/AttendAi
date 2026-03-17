@@ -5,12 +5,17 @@ import { connectDB } from '@/lib/mongodb';
 import Faculty from '@/models/Faculty';
 import User from '@/models/User';
 import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
+import { requireTenantUser } from '@/lib/auth-guards';
 
 // GET all faculty
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
     const tenant = await getTenantContext(request);
+    const guard = requireTenantUser(tenant);
+    if (guard) {
+      return guard;
+    }
 
     // Fetch all faculty with populated user data
     const facultyList = await Faculty.find(withInstitutionScope({}, tenant.institutionId))
@@ -52,6 +57,10 @@ export async function POST(request: NextRequest) {
   try {
     await connectDB();
     const tenant = await getTenantContext(request);
+    const guard = requireTenantUser(tenant);
+    if (guard) {
+      return guard;
+    }
 
     const body = await request.json();
     const { name, email, facultyId, department, imageUrl, password } = body;

@@ -45,8 +45,8 @@ export function Navbar({ title, subtitle, onMobileMenuToggle }: NavbarProps) {
             <Menu className="w-5 h-5 text-gray-600" />
           </Button>
 
-          <div>
-            <h1 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-900">{title}</h1>
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-900 truncate max-w-[52vw] sm:max-w-none">{title}</h1>
             {subtitle && <p className="hidden sm:block text-xs sm:text-sm text-gray-500 mt-0.5">{subtitle}</p>}
           </div>
         </div>

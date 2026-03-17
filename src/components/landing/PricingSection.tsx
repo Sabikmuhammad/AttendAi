@@ -143,7 +143,7 @@ export function PricingSection() {
               </ul>
 
               {/* CTA Button */}
-              <Link href="/sign-up" className="mt-auto">
+              <Link href="/pricing" className="mt-auto">
                 <Button
                   className={`w-full ${
                     plan.highlighted

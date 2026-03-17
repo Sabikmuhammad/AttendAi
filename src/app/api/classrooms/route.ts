@@ -1,20 +1,25 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Classroom from '@/models/Classroom';
 import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
+import { checkLimit } from '@/lib/trial';
+import { requireTenantUser } from '@/lib/auth-guards';
 
 // GET - Fetch all classrooms
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
     const tenant = await getTenantContext(request);
+    const guard = requireTenantUser(tenant);
+    if (guard) {
+      return guard;
+    }
 
     const { searchParams } = new URL(request.url);
     const isActive = searchParams.get('isActive');
     const hasCamera = searchParams.get('hasCamera');
 
-    const query: any = withInstitutionScope({}, tenant.institutionId);
+    const query: Record<string, unknown> = withInstitutionScope({}, tenant.institutionId);
     
     if (isActive !== null) {
       query.isActive = isActive === 'true';
@@ -45,9 +50,20 @@ export async function POST(request: NextRequest) {
   try {
     await connectDB();
     const tenant = await getTenantContext(request);
+    const guard = requireTenantUser(tenant);
+    if (guard) {
+      return guard;
+    }
 
     const body = await request.json();
     
+    // Trial limit check
+    const currentCount = await Classroom.countDocuments({ institutionId: tenant.institutionId });
+    const limitCheck = await checkLimit(tenant.institutionId!, 'classrooms', currentCount);
+    if (!limitCheck.allowed) {
+      return NextResponse.json({ success: false, error: limitCheck.message }, { status: 403 });
+    }
+
     // Validate required fields
     if (!body.name || !body.roomNumber) {
       return NextResponse.json(
@@ -94,6 +110,7 @@ export async function POST(request: NextRequest) {
       classroom,
       message: 'Classroom created successfully',
     }, { status: 201 });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('Error creating classroom:', error);
 
@@ -136,6 +153,10 @@ export async function PUT(request: NextRequest) {
   try {
     await connectDB();
     const tenant = await getTenantContext(request);
+    const guard = requireTenantUser(tenant);
+    if (guard) {
+      return guard;
+    }
 
     const body = await request.json();
     const { _id, ...updateData } = body;
@@ -165,6 +186,7 @@ export async function PUT(request: NextRequest) {
       classroom,
       message: 'Classroom updated successfully',
     });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('Error updating classroom:', error);
     return NextResponse.json(
@@ -182,6 +204,10 @@ export async function DELETE(request: NextRequest) {
   try {
     await connectDB();
     const tenant = await getTenantContext(request);
+    const guard = requireTenantUser(tenant);
+    if (guard) {
+      return guard;
+    }
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
@@ -208,6 +234,7 @@ export async function DELETE(request: NextRequest) {
       success: true,
       message: 'Classroom deleted successfully',
     });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('Error deleting classroom:', error);
     return NextResponse.json(

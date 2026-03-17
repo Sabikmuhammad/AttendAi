@@ -23,7 +23,7 @@ export function ResendHero() {
         <div className="absolute top-1/2 right-1/4 -translate-y-1/2 w-[300px] h-[300px] sm:w-[400px] sm:h-[400px] lg:w-[600px] lg:h-[600px] bg-blue-600/10 rounded-full blur-[100px]" />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 lg:py-32">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-12 sm:pt-32 sm:pb-16 md:pt-40 md:pb-20 lg:pt-48 lg:pb-32">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-10 lg:gap-16 items-center">
           {/* Left Side - Content */}
           <div className="space-y-6 sm:space-y-8 text-center lg:text-left">
@@ -44,7 +44,7 @@ export function ResendHero() {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start">
-              <Link href="/sign-up" className="w-full sm:w-auto">
+              <Link href="/pricing" className="w-full sm:w-auto">
                 <button className="w-full group px-6 sm:px-8 py-3 sm:py-3.5 bg-white text-black font-medium rounded-lg hover:bg-gray-200 transition-all flex items-center justify-center gap-2 text-sm sm:text-base">
                   Get Started
                   <ArrowRight 
@@ -82,7 +82,7 @@ export function ResendHero() {
           </div>
 
           {/* Right Side - AI Face Visualization */}
-          <div className="relative flex items-center justify-center mt-8 lg:mt-0 order-first lg:order-last">
+          <div className="relative flex items-center justify-center mt-12 mb-8 lg:mt-0 lg:mb-0 order-first lg:order-last min-h-[300px] sm:min-h-[400px] lg:min-h-0">
             {/* Glow Effect Behind Image */}
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="w-48 h-48 sm:w-72 sm:h-72 lg:w-96 lg:h-96 bg-purple-600/30 rounded-full blur-[80px] sm:blur-[100px] animate-pulse-slow" />

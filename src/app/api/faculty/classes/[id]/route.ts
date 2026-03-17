@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Class from '@/models/Class';
 import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
+import { requireTenantUser } from '@/lib/auth-guards';
 
 export async function GET(
   request: NextRequest,
@@ -12,6 +13,10 @@ export async function GET(
 
     await connectDB();
     const tenant = await getTenantContext(request);
+    const guard = requireTenantUser(tenant, {
+      roles: ['super_admin', 'institution_admin', 'department_admin', 'admin', 'faculty'],
+    });
+    if (guard) return guard;
 
     const classData = await Class.findOne(withInstitutionScope({ _id: id }, tenant.institutionId))
       .populate('studentIds', 'name registerNumber email department')

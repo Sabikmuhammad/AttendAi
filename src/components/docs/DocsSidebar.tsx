@@ -2,69 +2,35 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  BookOpen, 
-  Layers, 
-  Download, 
-  Camera, 
-  UserPlus, 
-  Workflow, 
-  Code, 
-  LayoutDashboard, 
-  Shield, 
-  HelpCircle 
-} from 'lucide-react';
 
-const docsLinks = [
+const NAV_GROUPS = [
   {
-    title: 'Introduction',
-    href: '/docs/introduction',
-    icon: BookOpen,
+    label: 'Overview',
+    items: [
+      { title: 'Introduction', href: '/docs' },
+      { title: 'Getting Started', href: '/docs/getting-started' },
+      { title: 'Platform Overview', href: '/docs/platform' },
+    ],
   },
   {
-    title: 'System Architecture',
-    href: '/docs/system-architecture',
-    icon: Layers,
+    label: 'Guides',
+    items: [
+      { title: 'Admin Guide', href: '/docs/admin' },
+      { title: 'Faculty Guide', href: '/docs/faculty' },
+      { title: 'Student Guide', href: '/docs/student' },
+    ],
   },
   {
-    title: 'Installation',
-    href: '/docs/installation',
-    icon: Download,
+    label: 'Technical',
+    items: [
+      { title: 'AI Attendance System', href: '/docs/ai-attendance' },
+      { title: 'Camera Setup', href: '/docs/camera-setup' },
+      { title: 'Security & Privacy', href: '/docs/security' },
+    ],
   },
   {
-    title: 'Camera Setup',
-    href: '/docs/camera-setup',
-    icon: Camera,
-  },
-  {
-    title: 'Face Registration',
-    href: '/docs/face-registration',
-    icon: UserPlus,
-  },
-  {
-    title: 'Attendance Workflow',
-    href: '/docs/attendance-workflow',
-    icon: Workflow,
-  },
-  {
-    title: 'API Reference',
-    href: '/docs/api-reference',
-    icon: Code,
-  },
-  {
-    title: 'Dashboard Guide',
-    href: '/docs/dashboard-guide',
-    icon: LayoutDashboard,
-  },
-  {
-    title: 'Security',
-    href: '/docs/security',
-    icon: Shield,
-  },
-  {
-    title: 'FAQ',
-    href: '/docs/faq',
-    icon: HelpCircle,
+    label: 'Support',
+    items: [{ title: 'FAQ', href: '/docs/faq' }],
   },
 ];
 
@@ -72,35 +38,38 @@ export function DocsSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 overflow-y-auto border-r border-white/10 bg-black/50 backdrop-blur-xl">
-      <nav className="p-6 space-y-1">
-        <div className="mb-6">
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-            Documentation
-          </h3>
-        </div>
-        
-        {docsLinks.map((link) => {
-          const isActive = pathname === link.href;
-          const Icon = link.icon;
-          
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`
-                flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all
-                ${isActive 
-                  ? 'bg-white/10 text-white font-medium' 
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-                }
-              `}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{link.title}</span>
-            </Link>
-          );
-        })}
+    <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] overflow-y-auto border-r border-zinc-200/80 bg-white/75 px-3 py-8 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/60 lg:block">
+      <nav className="space-y-6">
+        {NAV_GROUPS.map((group) => (
+          <div key={group.label}>
+            <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+              {group.label}
+            </p>
+            <ul className="space-y-0.5">
+              {group.items.map((item) => {
+                const isActive =
+                  pathname === item.href ||
+                  (item.href !== '/docs' && pathname.startsWith(item.href));
+
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      className={[
+                        'block rounded-md px-3 py-1.5 text-sm transition',
+                        isActive
+                          ? 'bg-zinc-100 font-medium text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'
+                          : 'text-zinc-600 hover:bg-zinc-100/70 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-200',
+                      ].join(' ')}
+                    >
+                      {item.title}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
       </nav>
     </aside>
   );

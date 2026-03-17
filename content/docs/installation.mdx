@@ -1,363 +1,84 @@
+n---
+title: "Installation"
+description: "Install and run the current AttendAI project locally"
 ---
-title: "Installation Guide"
-description: "Complete installation guide for AttendAI"
----
 
-# Installation Guide
+# Installation
 
-This guide will walk you through installing and configuring AttendAI on your server.
+## Prerequisites
 
-## System Requirements
+- Node.js 20+ (22 LTS recommended)
+- Python 3.8+
+- MongoDB Atlas connection string
+- Clerk keys
 
-### Hardware Requirements
-
-**Minimum**:
-- CPU: Intel i5 or AMD Ryzen 5 (4 cores)
-- RAM: 8GB
-- Storage: 100GB SSD
-- GPU: Not required (CPU inference)
-- Network: 100 Mbps
-
-**Recommended**:
-- CPU: Intel i7/i9 or AMD Ryzen 7/9 (8+ cores)
-- RAM: 16GB or more
-- Storage: 500GB NVMe SSD
-- GPU: NVIDIA RTX 3060 or better (with CUDA support)
-- Network: 1 Gbps
-
-### Software Requirements
-
-- **Operating System**: Ubuntu 22.04 LTS (recommended) or Windows Server 2019+
-- **Node.js**: v18.17 or higher
-- **Python**: 3.9 or higher
-- **MongoDB**: 5.0 or higher / MongoDB Atlas account
-- **Git**: For cloning the repository
-
-## Installation Steps
-
-### 1. Clone the Repository
+## 1) Frontend setup
 
 ```bash
-git clone https://github.com/attendai/attendai.git
-cd attendai
-```
-
-### 2. Install Node.js Dependencies
-
-```bash
-# Install frontend dependencies
 npm install
-
-# Or using yarn
-yarn install
 ```
 
-### 3. Install Python Dependencies
+Create .env.local in project root:
+
+```env
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=...
+CLERK_SECRET_KEY=...
+MONGODB_URI=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/?appName=Cluster0
+NEXT_PUBLIC_AI_SERVICE_URL=http://localhost:8000
+AI_SERVICE_URL=http://localhost:8000
+PYTHON_SERVICE_URL=http://localhost:8000
+```
+
+## 2) AI service setup
 
 ```bash
-# Create virtual environment
-python3 -m venv venv
-
-# Activate virtual environment
-# On Linux/Mac:
-source venv/bin/activate
-# On Windows:
-venv\Scripts\activate
-
-# Navigate to AI service directory
 cd ai-service
-
-# Install Python packages
+python3 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Python Dependencies (requirements.txt):
-
-```txt
-opencv-python==4.8.1.78
-face-recognition==1.3.0
-numpy==1.24.3
-dlib==19.24.0
-tensorflow==2.13.0
-fastapi==0.103.1
-uvicorn==0.23.2
-python-multipart==0.0.6
-pillow==10.0.0
-```
-
-### 4. Set Up MongoDB
-
-#### Option A: MongoDB Atlas (Recommended)
-
-1. Create a free account at [mongodb.com/atlas](https://www.mongodb.com/atlas)
-2. Create a new cluster
-3. Add your IP address to the whitelist
-4. Create a database user
-5. Get your connection string
-
-#### Option B: Local MongoDB
-
-```bash
-# Ubuntu
-sudo apt-get install -y mongodb-org
-
-# Start MongoDB service
-sudo systemctl start mongod
-sudo systemctl enable mongod
-```
-
-### 5. Configure Environment Variables
-
-Create a `.env` file in the root directory:
+Create ai-service/.env:
 
 ```env
-# MongoDB Configuration
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/attendai?retryWrites=true&w=majority
-
-# Clerk Authentication
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-CLERK_SECRET_KEY=sk_test_...
-NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
-NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
-NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/onboarding
-
-# Cloudinary (for image storage)
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-
-# AI Service Configuration
-AI_SERVICE_URL=http://localhost:8000
-RTSP_STREAM_URL=rtsp://username:password@camera-ip:554/stream
-
-# Application Configuration
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-NODE_ENV=development
+MONGODB_URI=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/?appName=Cluster0
+DATABASE_NAME=test
 ```
 
-### 6. Initialize Database
+## 3) Start both services
 
-Run the database initialization script:
-
-```bash
-npm run db:init
-```
-
-This will create the necessary collections and indexes in MongoDB.
-
-### 7. Start the Services
-
-#### Start Next.js Web Application
+Terminal 1:
 
 ```bash
-# Development mode
-npm run dev
-
-# Production mode
-npm run build
-npm start
-```
-
-The web application will start at `http://localhost:3000`
-
-#### Start AI Processing Service
-
-```bash
-# Navigate to AI service directory
 cd ai-service
-
-# Activate virtual environment
-source venv/bin/activate  # On Linux/Mac
-# venv\Scripts\activate  # On Windows
-
-# Start the service
+source venv/bin/activate
 python main.py
 ```
 
-The AI service will start at `http://localhost:8000`
-
-## Docker Installation (Alternative)
-
-For easier deployment, use Docker:
-
-### 1. Install Docker
+Terminal 2:
 
 ```bash
-# Ubuntu
-sudo apt-get update
-sudo apt-get install docker.io docker-compose
-sudo systemctl start docker
-sudo systemctl enable docker
+npm run dev
 ```
 
-### 2. Build and Run with Docker Compose
+## 4) Verify
+
+- Web app: http://localhost:3000
+- AI service: http://localhost:8000
+- Docs: http://localhost:3000/docs
+
+## Troubleshooting quick checks
+
+### MongoDB timeout during login
+
+- Resume paused Atlas cluster
+- Add your IP in Atlas Network Access
+- Validate MONGODB_URI credentials and encoding
+
+### Next.js missing chunk/module in dev
 
 ```bash
-# Build images
-docker-compose build
-
-# Start services
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
+pkill -f "next dev --port 3000" || true
+rm -rf .next
+npm run dev
 ```
-
-### docker-compose.yml:
-
-```yaml
-version: '3.8'
-
-services:
-  web:
-    build: .
-    ports:
-      - "3000:3000"
-    environment:
-      - MONGODB_URI=${MONGODB_URI}
-      - AI_SERVICE_URL=http://ai-service:8000
-    depends_on:
-      - ai-service
-
-  ai-service:
-    build: ./ai-service
-    ports:
-      - "8000:8000"
-    environment:
-      - MONGODB_URI=${MONGODB_URI}
-    volumes:
-      - ./ai-service:/app
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-
-  mongodb:
-    image: mongo:5.0
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-
-volumes:
-  mongodb_data:
-```
-
-## Post-Installation Setup
-
-### 1. Create Admin Account
-
-1. Navigate to `http://localhost:3000`
-2. Click "Sign Up"
-3. Create your admin account
-4. Complete onboarding and select "Admin" role
-
-### 2. Configure System Settings
-
-1. Log in to the dashboard
-2. Go to **Settings** → **System Configuration**
-3. Configure:
-   - Recognition threshold (default: 0.6)
-   - Frame processing rate (default: 1 FPS)
-   - Duplicate detection window (default: 5 minutes)
-   - Camera timeout settings
-
-### 3. Add CCTV Cameras
-
-See [Camera Setup Guide](/docs/camera-setup) for detailed instructions.
-
-### 4. Register Students
-
-See [Face Registration Guide](/docs/face-registration) for detailed instructions.
-
-## Verification
-
-### Health Check
-
-Verify all services are running:
-
-```bash
-# Check web application
-curl http://localhost:3000/api/health
-
-# Check AI service
-curl http://localhost:8000/health
-```
-
-Expected response:
-```json
-{
-  "status": "ok",
-  "version": "1.0.0",
-  "timestamp": "2026-03-12T10:30:00Z"
-}
-```
-
-### Test Face Recognition
-
-```bash
-# Upload a test image
-curl -X POST http://localhost:8000/detect \
-  -F "image=@test-face.jpg"
-```
-
-## Troubleshooting
-
-### Common Issues
-
-#### 1. MongoDB Connection Failed
-
-**Error**: `MongooseServerSelectionError: Could not connect to any servers`
-
-**Solution**:
-- Check MongoDB URI in `.env` file
-- Verify network connectivity
-- Ensure IP is whitelisted (MongoDB Atlas)
-- Check if MongoDB service is running (local installation)
-
-#### 2. AI Service Not Starting
-
-**Error**: `ModuleNotFoundError: No module named 'face_recognition'`
-
-**Solution**:
-```bash
-cd ai-service
-pip install --upgrade pip
-pip install -r requirements.txt
-```
-
-#### 3. Camera Connection Failed
-
-**Error**: `RTSP connection timeout`
-
-**Solution**:
-- Verify camera is powered on and connected to network
-- Check RTSP URL format
-- Test RTSP stream with VLC media player
-- Ensure firewall allows RTSP port (554)
-
-#### 4. Low Recognition Accuracy
-
-**Solution**:
-- Ensure good lighting in classrooms
-- Position cameras at face level (5-6 feet)
-- Use higher resolution cameras (1080p recommended)
-- Register multiple photos per student
-- Adjust recognition threshold in settings
-
-### Getting Help
-
-- **Documentation**: [docs.attendai.com](https://docs.attendai.com)
-- **GitHub Issues**: [github.com/attendai/attendai/issues](https://github.com/attendai/attendai/issues)
-- **Community Forum**: [community.attendai.com](https://community.attendai.com)
-- **Email Support**: support@attendai.com
-
-## Next Steps
-
-- 🎥 [Camera Setup](/docs/camera-setup) - Configure CCTV cameras
-- 👤 [Face Registration](/docs/face-registration) - Register students
-- 🔄 [Attendance Workflow](/docs/attendance-workflow) - Start recording attendance

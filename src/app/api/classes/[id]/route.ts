@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Class from '@/models/Class';
 import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
+import { requireTenantUser } from '@/lib/auth-guards';
 
 // GET single class
 export async function GET(
@@ -11,6 +12,8 @@ export async function GET(
   try {
     await connectDB();
     const tenant = await getTenantContext(req);
+    const guard = requireTenantUser(tenant);
+    if (guard) return guard;
 
     const { id } = await params;
     const classData = await Class.findOne(withInstitutionScope({ _id: id }, tenant.institutionId))
@@ -39,6 +42,10 @@ export async function PATCH(
   try {
     await connectDB();
     const tenant = await getTenantContext(req);
+    const guard = requireTenantUser(tenant, {
+      roles: ['super_admin', 'institution_admin', 'department_admin', 'admin'],
+    });
+    if (guard) return guard;
 
     const { id } = await params;
     const body = await req.json();
@@ -75,6 +82,10 @@ export async function DELETE(
   try {
     await connectDB();
     const tenant = await getTenantContext(req);
+    const guard = requireTenantUser(tenant, {
+      roles: ['super_admin', 'institution_admin', 'department_admin', 'admin'],
+    });
+    if (guard) return guard;
 
     const { id } = await params;
     const deletedClass = await Class.findOneAndDelete(

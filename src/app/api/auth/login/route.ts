@@ -27,7 +27,8 @@ export async function POST(req: NextRequest) {
       req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
       req.headers.get('x-real-ip') ||
       'unknown';
-    const rate = isRateLimited(`login:${ip}:${email}:${institutionCode}`);
+    const rateKey = `login:${ip}:${email}:${institutionCode}`;
+    const rate = isRateLimited(rateKey);
     if (rate.limited) {
       return NextResponse.json(
         { success: false, error: `Too many attempts. Retry in ${rate.retryAfter}s` },
@@ -37,10 +38,8 @@ export async function POST(req: NextRequest) {
 
     await connectDB();
 
-    const institution = await Institution.findOne({ code: institutionCode }).lean<{
-      _id: string;
-      status?: string;
-    }>();
+    const institution = await Institution.findOne({ code: institutionCode }).lean<{ _id: string; status?: string }>();
+
     if (!institution) {
       return NextResponse.json(
         { success: false, error: 'Invalid institution code' },

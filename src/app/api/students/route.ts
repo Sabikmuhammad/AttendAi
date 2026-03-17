@@ -1,10 +1,27 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { connectDB } from '@/lib/mongodb';
 import Student from '@/models/Student';
 import User from '@/models/User';
 import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
+import { checkLimit } from '@/lib/trial';
+
+type StudentLeanWithUser = {
+  _id: string;
+  studentId: string;
+  department: string;
+  section: string;
+  semester: string;
+  imageUrl?: string;
+  faceEmbedding?: number[];
+  createdAt: Date;
+  updatedAt: Date;
+  userId?: {
+    name?: string;
+    email?: string;
+    imageUrl?: string;
+  };
+};
 
 function isStudentsManagerRole(role?: string): boolean {
   return (
@@ -30,7 +47,7 @@ export async function GET(req: NextRequest) {
     const section = searchParams.get('section');
     const semester = searchParams.get('semester');
 
-    const filter: any = withInstitutionScope({}, tenant.institutionId);
+    const filter: Record<string, unknown> = withInstitutionScope({}, tenant.institutionId);
     if (department) filter.department = department;
     if (section) filter.section = section;
     if (semester) filter.semester = semester;
@@ -38,10 +55,10 @@ export async function GET(req: NextRequest) {
     const students = await Student.find(filter)
       .populate('userId', 'name email imageUrl')
       .sort({ createdAt: -1 })
-      .lean();
+      .lean<StudentLeanWithUser[]>();
 
     // Transform to include user data at top level for backward compatibility
-    const transformedStudents = students.map((student: any) => ({
+    const transformedStudents = students.map((student) => ({
       _id: student._id,
       studentId: student.studentId,
       name: student.userId?.name || 'Unknown',
@@ -85,6 +102,13 @@ export async function POST(req: NextRequest) {
         { error: 'Missing required fields: name, email, studentId, department, section, semester' },
         { status: 400 }
       );
+    }
+
+    // Trial limit check
+    const currentCount = await Student.countDocuments({ institutionId: tenant.institutionId });
+    const limitCheck = await checkLimit(tenant.institutionId, 'students', currentCount);
+    if (!limitCheck.allowed) {
+      return NextResponse.json({ error: limitCheck.message }, { status: 403 });
     }
 
     // Check if student ID already exists
@@ -139,7 +163,7 @@ export async function POST(req: NextRequest) {
       withInstitutionScope({ _id: student._id }, tenant.institutionId)
     )
       .populate('userId', 'name email imageUrl')
-      .lean();
+      .lean<StudentLeanWithUser>();
 
     if (!populatedStudent) {
       return NextResponse.json(
@@ -148,7 +172,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const studentData = populatedStudent as any;
+    const studentData = populatedStudent;
 
     return NextResponse.json({
       success: true,

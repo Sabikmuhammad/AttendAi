@@ -1,385 +1,43 @@
 ---
 title: "Face Registration"
-description: "Guide to registering student faces in AttendAI"
+description: "Register student identity data and image assets in the current app"
 ---
 
 # Face Registration
 
-Face registration is the process of capturing and storing student facial features in the AttendAI database. This guide explains how to register students for accurate face recognition.
+In this project, student identity and face-related fields are managed through student records and image upload flow.
 
-## Overview
+## Main data model fields
 
-### How Face Registration Works
+Student records include fields such as:
 
-1. **Image Upload**: Admin uploads student photo
-2. **Face Detection**: AI detects face in the image
-3. **Embedding Extraction**: 128-dimensional vector created from facial features
-4. **Storage**: Embedding stored in database (not the actual photo)
-5. **Verification**: System confirms successful registration
+- studentId
+- department
+- section
+- semester
+- imageUrl
+- faceEmbedding (when available)
 
-### Why Face Embeddings?
+## Typical flow
 
-AttendAI stores **face embeddings** instead of photos:
+1. Create student from admin UI or API.
+2. Upload student image from admin upload endpoint.
+3. Run detection/recognition pipeline via AI service.
+4. Use attendance marking flow for recognized students.
 
-- 🔒 **Privacy**: Original photos are not stored, only mathematical representations
-- ⚡ **Speed**: Embeddings are faster to compare than full images
-- 💾 **Storage**: Embeddings are ~1KB vs ~1MB for photos
-- 🎯 **Accuracy**: Embeddings capture unique facial features
+## Related endpoints
 
-## Registration Methods
+- GET /api/students
+- POST /api/students
+- GET /api/students/:id
+- PATCH /api/students/:id
+- DELETE /api/students/:id
+- POST /api/admin/upload-student-image
+- POST /api/detect-faces
 
-### Method 1: Dashboard Upload (Recommended)
+## Recommended practices
 
-#### Single Student Registration
-
-1. Log in to AttendAI dashboard
-2. Navigate to **Students** → **Add Student**
-3. Fill in student details:
-
-```
-Name: John Doe
-Roll Number: CS2024001
-Email: john@university.edu
-Department: Computer Science
-Year: 2024
-Class: CS301 - Data Structures
-```
-
-4. Click **Upload Photo**
-5. Select high-quality front-facing photo
-6. System will display detected face
-7. Click **Register Student**
-
-#### Bulk Student Registration
-
-1. Navigate to **Students** → **Bulk Import**
-2. Download CSV template:
-
-```csv
-name,rollNumber,email,department,year,photo_url
-John Doe,CS2024001,john@university.edu,Computer Science,2024,https://example.com/john.jpg
-Jane Smith,CS2024002,jane@university.edu,Computer Science,2024,https://example.com/jane.jpg
-```
-
-3. Fill in student details and photo URLs
-4. Upload CSV file
-5. System processes each student
-6. Review results and fix any errors
-
-### Method 2: API Integration
-
-Register students programmatically via REST API:
-
-```bash
-curl -X POST http://localhost:3000/api/students \
-  -H "Authorization: Bearer YOUR_API_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "John Doe",
-    "rollNumber": "CS2024001",
-    "email": "john@university.edu",
-    "department": "Computer Science",
-    "photo": "base64_encoded_image_data"
-  }'
-```
-
-Response:
-```json
-{
-  "success": true,
-  "studentId": "65f8a1b2c3d4e5f6g7h8i9j0",
-  "message": "Student registered successfully",
-  "faceDetected": true,
-  "confidence": 0.95
-}
-```
-
-### Method 3: Camera Capture
-
-Register students directly from camera feed:
-
-1. Navigate to **Students** → **Camera Registration**
-2. Select camera from dropdown
-3. Student stands in front of camera
-4. Click **Capture** when face is clearly visible
-5. System captures 5-10 photos automatically
-6. Best photo is selected for registration
-
-## Photo Requirements
-
-### Image Quality Guidelines
-
-**Do's** ✅:
-- Use high-resolution photos (minimum 640x480, recommended 1920x1080)
-- Ensure good lighting (avoid shadows on face)
-- Front-facing photos with neutral expression
-- Clear, in-focus images
-- Plain or simple background
-- Remove glasses (if possible) for better accuracy
-
-**Don'ts** ❌:
-- Blurry or pixelated images
-- Side profiles or angled faces
-- Sunglasses or face masks
-- Heavy makeup or filters
-- Dark or backlit photos
-- Group photos (must be single person)
-
-### Acceptable Photo Examples
-
-**Good Photos**:
-- Passport-style photos
-- ID card photos
-- Professional headshots
-- Webcam captures in good lighting
-- Recent smartphone photos
-
-**Poor Photos**:
-- Selfies with filters
-- Screenshots from videos
-- Photos from social media
-- Heavily edited images
-- Photos from far away
-
-## Registration Best Practices
-
-### 1. Multiple Photos Per Student
-
-Register 3-5 photos per student for improved accuracy:
-
-```bash
-# Register multiple photos
-curl -X POST http://localhost:3000/api/students/CS2024001/faces \
-  -F "photo1=@john-front.jpg" \
-  -F "photo2=@john-side.jpg" \
-  -F "photo3=@john-glasses.jpg"
-```
-
-**Benefits**:
-- Handles variations (glasses, hairstyle, etc.)
-- Improves recognition in different lighting
-- Reduces false negatives
-
-### 2. Periodic Re-registration
-
-Re-register students periodically:
-
-- **Annually**: Physical appearance changes
-- **After major change**: Haircut, facial hair, etc.
-- **Low recognition rate**: If student frequently not recognized
-
-### 3. Quality Check
-
-Before finalizing registration:
-
-1. Review detected face bounding box
-2. Check face embedding quality score (should be > 0.8)
-3. Verify no duplicate registrations
-4. Test recognition with sample camera feed
-
-## Managing Registered Faces
-
-### View Registered Students
-
-```bash
-# Get all students
-curl http://localhost:3000/api/students \
-  -H "Authorization: Bearer YOUR_API_TOKEN"
-```
-
-Response:
-```json
-{
-  "students": [
-    {
-      "id": "65f8a1b2c3d4e5f6g7h8i9j0",
-      "name": "John Doe",
-      "rollNumber": "CS2024001",
-      "registered": true,
-      "registrationDate": "2026-03-01T10:30:00Z",
-      "faceQuality": 0.92
-    }
-  ]
-}
-```
-
-### Update Student Face
-
-```bash
-# Update face embedding
-curl -X PUT http://localhost:3000/api/students/CS2024001/face \
-  -F "photo=@new-photo.jpg"
-```
-
-### Delete Student Face
-
-```bash
-# Remove face embedding (keeps student record)
-curl -X DELETE http://localhost:3000/api/students/CS2024001/face \
-  -H "Authorization: Bearer YOUR_API_TOKEN"
-```
-
-### Re-register Student
-
-```bash
-# Complete re-registration
-curl -X POST http://localhost:3000/api/students/CS2024001/reregister \
-  -F "photo=@updated-photo.jpg"
-```
-
-## Verification and Testing
-
-### Test Recognition
-
-After registration, test if student is recognized:
-
-1. Navigate to **Students** → Select student → **Test Recognition**
-2. Upload a test photo or use live camera
-3. System displays:
-   - Match confidence score
-   - Recognition time
-   - Detected vs registered face comparison
-
-### Recognition Confidence
-
-Confidence scores indicate match quality:
-
-- **0.9 - 1.0**: Excellent match ✅
-- **0.7 - 0.9**: Good match ✅
-- **0.6 - 0.7**: Acceptable match ⚠️
-- **< 0.6**: Poor match ❌
-
-Adjust threshold in **Settings** → **Recognition** → **Confidence Threshold**
-
-## Troubleshooting
-
-### Face Not Detected
-
-**Problem**: "No face detected in image"
-
-**Solutions**:
-1. Use higher resolution image
-2. Ensure face is clearly visible and not obscured
-3. Check lighting - avoid shadows
-4. Try different photo
-5. Remove glasses or hats
-
-### Low Quality Score
-
-**Problem**: "Face quality score too low (< 0.6)"
-
-**Solutions**:
-1. Use clearer, higher resolution photo
-2. Ensure face is front-facing
-3. Improve lighting conditions
-4. Use photo taken from closer distance
-5. Avoid motion blur
-
-### Duplicate Detection
-
-**Problem**: "Face already registered for another student"
-
-**Solutions**:
-1. Verify photo belongs to correct student
-2. Check for accidental duplicate entries
-3. Use facial embedding comparison tool
-4. Delete duplicate and re-register
-
-### Recognition Failures
-
-**Problem**: Student not recognized during attendance
-
-**Solutions**:
-1. Re-register with better quality photo
-2. Register multiple photos (different angles)
-3. Check camera positioning and lighting
-4. Lower recognition threshold (Settings)
-5. Verify student is in correct class database
-
-## Face Database Management
-
-### Database Statistics
-
-View registration statistics:
-
-```bash
-curl http://localhost:3000/api/students/stats \
-  -H "Authorization: Bearer YOUR_API_TOKEN"
-```
-
-Response:
-```json
-{
-  "total": 500,
-  "registered": 485,
-  "pending": 15,
-  "averageQuality": 0.87,
-  "lastUpdated": "2026-03-12T10:30:00Z"
-}
-```
-
-### Batch Operations
-
-#### Export Face Data
-```bash
-# Backup face embeddings
-curl http://localhost:3000/api/students/export \
-  -H "Authorization: Bearer YOUR_API_TOKEN" \
-  -o face-backup.json
-```
-
-#### Import Face Data
-```bash
-# Restore from backup
-curl -X POST http://localhost:3000/api/students/import \
-  -H "Authorization: Bearer YOUR_API_TOKEN" \
-  -F "file=@face-backup.json"
-```
-
-### Database Maintenance
-
-Regular maintenance tasks:
-
-1. **Remove duplicates**: Monthly duplicate check
-2. **Update outdated**: Re-register after 1 year
-3. **Archive graduates**: Move to alumni database
-4. **Quality audit**: Check face quality scores quarterly
-
-## Privacy and Data Protection
-
-### Data Handling
-
-- **Original Photos**: Not stored (deleted after processing)
-- **Face Embeddings**: Encrypted at rest (AES-256)
-- **Access Control**: Role-based permissions
-- **Audit Logs**: All face operations logged
-- **Data Retention**: Configurable retention policy
-
-### GDPR Compliance
-
-AttendAI complies with GDPR:
-
-- **Right to Access**: Students can view their data
-- **Right to Deletion**: Embeddings can be deleted
-- **Data Portability**: Export face data in standard format
-- **Consent**: Explicit consent required for registration
-- **Purpose Limitation**: Data used only for attendance
-
-## API Reference
-
-Complete API documentation: [API Reference](/docs/api-reference#face-registration)
-
-### Endpoints
-
-- `POST /api/students` - Register new student
-- `POST /api/students/:id/faces` - Add face to existing student
-- `PUT /api/students/:id/face` - Update student face
-- `DELETE /api/students/:id/face` - Delete student face
-- `GET /api/students/:id/verify` - Test face recognition
-- `POST /api/students/bulk` - Bulk registration
-
-## Next Steps
-
-- 🔄 [Attendance Workflow](/docs/attendance-workflow) - Start recording attendance
-- 📊 [Dashboard Guide](/docs/dashboard-guide) - Manage students via dashboard
-- 🔐 [Security](/docs/security) - Learn about data protection
+- Use clear front-facing photos.
+- Ensure one active student identity per studentId per institution.
+- Keep institution boundaries strict when testing multi-tenant data.
+- Re-upload and refresh embeddings if recognition quality drops.

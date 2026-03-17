@@ -5,11 +5,16 @@ import Class from '@/models/Class';
 import Faculty from '@/models/Faculty';
 import { auth } from '@/lib/auth';
 import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
+import { requireTenantUser } from '@/lib/auth-guards';
 
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
     const tenant = await getTenantContext(request);
+    const guard = requireTenantUser(tenant, {
+      roles: ['super_admin', 'institution_admin', 'department_admin', 'admin', 'faculty'],
+    });
+    if (guard) return guard;
 
     // Get facultyId from query parameter (temporary workaround for auth issues)
     const { searchParams } = new URL(request.url);

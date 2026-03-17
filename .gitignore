@@ -31,3 +31,6 @@ ai-service/.env
 # OS
 .DS_Store
 Thumbs.db
+
+# Scripts (dev/admin utilities — not for production)
+/scripts/

@@ -1,4 +1,5 @@
 import { DashboardLayout } from '@/components/DashboardLayout';
+import { TrialBanner } from '@/components/TrialBanner';
 
 /**
  * Admin Layout - Authentication disabled
@@ -18,6 +19,7 @@ export default function AdminLayout({
     { href: '/admin/students', icon: 'Users', label: 'Students' },
     { href: '/admin/sections', icon: 'Layers', label: 'Sections' },
     { href: '/admin/faculty', icon: 'GraduationCap', label: 'Faculty' },
+    { href: '/admin/departments', icon: 'Building2', label: 'Departments' },
     { href: '/admin/classes', icon: 'BookOpen', label: 'Classes' },
     { href: '/admin/classrooms', icon: 'Building2', label: 'Classrooms' },
     { href: '/admin/create-class', icon: 'Plus', label: 'Create Class' },
@@ -37,6 +39,7 @@ export default function AdminLayout({
       subtitle="Manage your attendance system"
       sidebarTitle="Admin Panel"
     >
+      <TrialBanner />
       {children}
     </DashboardLayout>
   );

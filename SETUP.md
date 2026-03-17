@@ -100,6 +100,13 @@ NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
 MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/attendai
 ```
 
+### Optional feature flags
+
+```env
+ENABLE_SUBDOMAINS=true     # Subdomains are *disabled* by default (set to true when you're ready)
+ATTENDANCE_SERVICE_TOKEN=secure-token-from-ai-service
+```
+
 ### Getting Clerk Credentials
 
 1. Go to [dashboard.clerk.com](https://dashboard.clerk.com)

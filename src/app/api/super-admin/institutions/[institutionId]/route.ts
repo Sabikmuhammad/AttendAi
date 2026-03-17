@@ -9,16 +9,27 @@ import ClassModel from '@/models/Class';
 import { getTenantContext, isSuperAdmin } from '@/lib/tenant';
 
 const planLimits = {
-  starter: { students: 500, faculty: 25, cameras: 10, classes: 50 },
-  professional: { students: 5000, faculty: 250, cameras: 100, classes: 500 },
-  enterprise: { students: 50000, faculty: 2500, cameras: 1000, classes: 5000 },
+  trial:      { students: 200,    faculty: 10,   cameras: 3,    classes: 3 },
+  starter:    { students: 500,    faculty: 25,   cameras: 5,    classes: 5 },
+  growth:     { students: 5000,   faculty: 250,  cameras: 25,   classes: 50 },
+  enterprise: { students: 999999, faculty: 9999, cameras: 9999, classes: 9999 },
 } as const;
 
 type Plan = keyof typeof planLimits;
 
-function normalizeSubdomain(value: string): string {
-  return value.toLowerCase().trim().replace(/[^a-z0-9-]/g, '');
-}
+type InstitutionLimits = {
+  students: number;
+  faculty: number;
+  cameras: number;
+  classes: number;
+};
+
+type InstitutionDetail = {
+  _id: string;
+  plan?: Plan;
+  planLimits?: InstitutionLimits;
+  [key: string]: unknown;
+};
 
 async function authorize(req: NextRequest) {
   const tenant = await getTenantContext(req);
@@ -36,11 +47,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ inst
 
     const { institutionId } = await params;
 
-    const institution = await Institution.findById(institutionId).lean<{
-      _id: string;
-      plan?: Plan;
-      [key: string]: unknown;
-    }>();
+    const institution = await Institution.findById(institutionId).lean<InstitutionDetail>();
     if (!institution) {
       return NextResponse.json({ success: false, error: 'Institution not found' }, { status: 404 });
     }
@@ -52,6 +59,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ inst
       ClassModel.countDocuments({ institutionId }),
     ]);
 
+    const planKey: Plan =
+      institution.plan && institution.plan in planLimits
+        ? (institution.plan as Plan)
+        : 'trial';
+    const limits = institution.planLimits ?? planLimits[planKey];
+
     return NextResponse.json({
       success: true,
       institution,
@@ -61,8 +74,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ inst
         totalCameras,
         totalClasses,
       },
-      limits:
-        planLimits[(institution.plan as Plan) || 'starter'] || planLimits.starter,
+      // Use the limits stored on the institution document first (reflects actual trial/plan limits),
+      // fall back to the plan defaults if not set.
+      limits,
     });
   } catch (error) {
     console.error('Error fetching institution details:', error);
@@ -81,10 +95,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ in
 
     const update: Record<string, unknown> = {};
     if (body.name) update.name = String(body.name).trim();
-    if (body.subdomain) {
-      update.subdomain = normalizeSubdomain(String(body.subdomain));
-      update.domain = `${update.subdomain}.platform.local`;
-    }
     if (body.code) update.code = String(body.code).trim().toUpperCase();
     if (body.contactEmail) update.contactEmail = String(body.contactEmail).trim().toLowerCase();
 
@@ -97,7 +107,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ in
     }
 
     if (body.plan) {
-      const allowedPlans = ['starter', 'professional', 'enterprise'];
+      const allowedPlans = ['trial', 'starter', 'growth', 'enterprise'];
       const normalizedPlan = String(body.plan) as Plan;
       if (!allowedPlans.includes(normalizedPlan)) {
         return NextResponse.json({ success: false, error: 'Invalid plan' }, { status: 400 });

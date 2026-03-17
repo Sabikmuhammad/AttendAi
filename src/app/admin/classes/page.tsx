@@ -99,13 +99,13 @@ export default function ClassesManagement() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Class Management</h1>
           <p className="text-gray-600 mt-1">Manage all class sessions</p>
         </div>
         <Link href="/admin/create-class">
-          <Button className="bg-purple-600 hover:bg-purple-700">
+          <Button className="w-full bg-purple-600 hover:bg-purple-700 sm:w-auto">
             <Plus className="w-4 h-4 mr-2" />
             Create Class
           </Button>
@@ -113,7 +113,7 @@ export default function ClassesManagement() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4 md:gap-6">
         <Card className="p-6">
           <p className="text-sm text-gray-600">Total Classes</p>
           <p className="text-3xl font-bold text-gray-900 mt-2">
@@ -142,8 +142,8 @@ export default function ClassesManagement() {
 
       {/* Filters */}
       <Card className="p-6">
-        <div className="flex gap-4">
-          <div className="flex-1 relative">
+        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <Input
               placeholder="Search by course, faculty, or classroom..."
@@ -155,7 +155,7 @@ export default function ClassesManagement() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent sm:w-56"
           >
             <option value="">All Status</option>
             <option value="scheduled">Scheduled</option>
@@ -168,7 +168,7 @@ export default function ClassesManagement() {
 
       {/* Classes Table */}
       <Card className="p-6">
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
             <thead className="border-b border-gray-200">
               <tr>
@@ -298,6 +298,42 @@ export default function ClassesManagement() {
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="space-y-3 md:hidden">
+          {loading ? (
+            <p className="text-center py-8 text-gray-500">Loading classes...</p>
+          ) : filteredClasses.length === 0 ? (
+            <p className="text-center py-8 text-gray-500">No classes found</p>
+          ) : (
+            filteredClasses.map((cls) => (
+              <div key={cls._id} className="rounded-lg border border-gray-200 p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-medium text-gray-900 truncate">{cls.courseName}</p>
+                    <p className="text-sm text-gray-600 truncate">{cls.facultyName}</p>
+                    <p className="text-sm text-gray-600">{cls.classroomNumber}</p>
+                    <p className="text-xs text-gray-500 mt-1">{new Date(cls.startTime).toLocaleString()}</p>
+                  </div>
+                  <StatusBadge status={cls.status} />
+                </div>
+                <div className="mt-3 flex flex-wrap justify-end gap-2">
+                  <Link href={`/admin/camera?class=${cls._id}`}>
+                    <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-700">Monitor</Button>
+                  </Link>
+                  {cls.status === 'scheduled' && (
+                    <Button variant="ghost" size="sm" onClick={() => updateClassStatus(cls._id, 'active')} className="text-green-600 hover:text-green-700">Start</Button>
+                  )}
+                  {cls.status === 'active' && (
+                    <Button variant="ghost" size="sm" onClick={() => updateClassStatus(cls._id, 'completed')} className="text-blue-600 hover:text-blue-700">End</Button>
+                  )}
+                  <Button variant="ghost" size="sm" onClick={() => deleteClass(cls._id)}>
+                    <Trash2 className="w-4 h-4 text-red-500" />
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </Card>
     </div>

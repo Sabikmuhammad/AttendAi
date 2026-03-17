@@ -3,12 +3,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Faculty from '@/models/Faculty';
 import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
+import { requireTenantUser } from '@/lib/auth-guards';
 
 // PATCH - Update faculty section assignment
 export async function PATCH(req: NextRequest) {
   try {
     await connectDB();
     const tenant = await getTenantContext(req);
+    const guard = requireTenantUser(tenant, {
+      roles: ['super_admin', 'institution_admin', 'department_admin', 'admin'],
+    });
+    if (guard) return guard;
 
     const body = await req.json();
     const { facultyId, section, semester } = body;

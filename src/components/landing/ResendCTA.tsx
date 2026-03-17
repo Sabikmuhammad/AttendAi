@@ -23,7 +23,7 @@ export function ResendCTA() {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
-          <Link href="/sign-up">
+          <Link href="/pricing">
             <button className="group w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white text-black font-semibold rounded-lg hover:bg-gray-200 transition-all flex items-center justify-center gap-2 text-sm sm:text-base">
               Get Started
               <ArrowRight 

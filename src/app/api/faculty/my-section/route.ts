@@ -6,12 +6,17 @@ import Student from '@/models/Student';
 import Attendance from '@/models/Attendance';
 import Class from '@/models/Class';
 import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
+import { requireTenantUser } from '@/lib/auth-guards';
 
 // GET - Fetch faculty's assigned section students with attendance
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
     const tenant = await getTenantContext(req);
+    const guard = requireTenantUser(tenant, {
+      roles: ['super_admin', 'institution_admin', 'department_admin', 'admin', 'faculty'],
+    });
+    if (guard) return guard;
 
     const { searchParams } = new URL(req.url);
     const facultyId = searchParams.get('facultyId');

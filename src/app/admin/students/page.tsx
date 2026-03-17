@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2, Edit, Upload, Search } from 'lucide-react';
+import { Plus, Trash2, Edit, Upload, Search, Share2, FileText, Check } from 'lucide-react';
 import Link from 'next/link';
 
 interface Student {
@@ -28,10 +28,34 @@ export default function StudentsManagement() {
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('');
+  const [institutionCode, setInstitutionCode] = useState('');
+  const [showCsvModal, setShowCsvModal] = useState(false);
+  const [copiedShare, setCopiedShare] = useState(false);
 
   useEffect(() => {
     fetchStudents();
+    fetchInstitutionInfo();
   }, []);
+
+  const fetchInstitutionInfo = async () => {
+    try {
+      const res = await fetch('/api/tenant/info');
+      const data = await res.json();
+      if (data.success && data.institution?.code) {
+        setInstitutionCode(data.institution.code);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleShareRegister = () => {
+    if (!institutionCode) return;
+    const url = `${window.location.origin}/register?institutionCode=${institutionCode}`;
+    navigator.clipboard.writeText(url);
+    setCopiedShare(true);
+    setTimeout(() => setCopiedShare(false), 2000);
+  };
 
   const fetchStudents = async () => {
     try {
@@ -81,28 +105,38 @@ export default function StudentsManagement() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Student Management</h1>
           <p className="text-gray-600 mt-1">Manage student database and face recognition data</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:gap-3">
+          {institutionCode && (
+            <Button
+              onClick={handleShareRegister}
+              variant="outline"
+              className="w-full border-purple-200 text-purple-700 hover:bg-purple-50 sm:w-auto"
+            >
+              {copiedShare ? <Check className="w-4 h-4 mr-2 text-green-600" /> : <Share2 className="w-4 h-4 mr-2" />}
+              {copiedShare ? 'Link Copied!' : 'Share to Register'}
+            </Button>
+          )}
+          <Button variant="outline" onClick={() => setShowCsvModal(true)} className="w-full sm:w-auto">
+            <Upload className="w-4 h-4 mr-2" />
+            Import CSV
+          </Button>
           <Button
             onClick={() => setShowAddModal(true)}
-            className="bg-purple-600 hover:bg-purple-700"
+            className="w-full bg-purple-600 hover:bg-purple-700 sm:w-auto"
           >
             <Plus className="w-4 h-4 mr-2" />
             Add Student
-          </Button>
-          <Button variant="outline">
-            <Upload className="w-4 h-4 mr-2" />
-            Upload CSV
           </Button>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 md:gap-6">
         <Card className="p-6">
           <p className="text-sm text-gray-600">Total Students</p>
           <p className="text-3xl font-bold text-gray-900 mt-2">{students.length}</p>
@@ -121,8 +155,8 @@ export default function StudentsManagement() {
 
       {/* Filters */}
       <Card className="p-6">
-        <div className="flex gap-4">
-          <div className="flex-1 relative">
+        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <Input
               placeholder="Search by name, register number, or email..."
@@ -134,7 +168,7 @@ export default function StudentsManagement() {
           <select
             value={selectedDepartment}
             onChange={(e) => setSelectedDepartment(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent sm:w-56"
           >
             <option value="">All Departments</option>
             {departments.map((dept) => (
@@ -148,7 +182,7 @@ export default function StudentsManagement() {
 
       {/* Students Table */}
       <Card className="p-6">
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
             <thead className="border-b border-gray-200">
               <tr>
@@ -250,6 +284,54 @@ export default function StudentsManagement() {
             </tbody>
           </table>
         </div>
+
+        <div className="space-y-3 md:hidden">
+          {loading ? (
+            <p className="text-center py-8 text-gray-500">Loading students...</p>
+          ) : filteredStudents.length === 0 ? (
+            <p className="text-center py-8 text-gray-500">No students found</p>
+          ) : (
+            filteredStudents.map((student) => (
+              <div key={student._id} className="rounded-lg border border-gray-200 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-medium text-gray-900 truncate">{student.name}</p>
+                    <p className="text-xs text-gray-500 truncate">{student.email}</p>
+                    <p className="mt-1 text-sm text-gray-600">{student.registerNumber}</p>
+                    <p className="text-sm text-gray-600">{student.department}</p>
+                  </div>
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-medium shrink-0 ${
+                      student.imageUrl ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    {student.imageUrl ? 'Face OK' : 'No Face'}
+                  </span>
+                </div>
+                <div className="mt-3 flex justify-end gap-2">
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href={`/admin/upload?studentId=${student._id}`}>
+                      <Upload className="w-4 h-4 text-blue-600" />
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setEditingStudent(student);
+                      setShowEditModal(true);
+                    }}
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => deleteStudent(student._id)}>
+                    <Trash2 className="w-4 h-4 text-red-500" />
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </Card>
 
       {/* Add Student Modal */}
@@ -278,6 +360,133 @@ export default function StudentsManagement() {
           }}
         />
       )}
+
+      {/* CSV Import Modal */}
+      {showCsvModal && (
+        <ImportCsvModal 
+          onClose={() => setShowCsvModal(false)}
+          onSuccess={() => {
+            fetchStudents();
+            setShowCsvModal(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function ImportCsvModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleUpload = async () => {
+    if (!file) {
+      setError('Please select a CSV file first.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const text = e.target?.result as string;
+        const rows = text.split('\n').map(row => row.split(','));
+        const headers = rows[0].map(h => h.trim().toLowerCase());
+        
+        // Find required column indexes
+        const nameIdx = headers.findIndex(h => h.includes('name'));
+        const emailIdx = headers.findIndex(h => h.includes('email'));
+        const regIdx = headers.findIndex(h => h.includes('register') || h.includes('id') || h.includes('roll'));
+        const deptIdx = headers.findIndex(h => h.includes('department') || h.includes('dept'));
+        const secIdx = headers.findIndex(h => h.includes('section') || h.includes('sec'));
+        const semIdx = headers.findIndex(h => h.includes('semester') || h.includes('sem'));
+
+        if (nameIdx === -1 || emailIdx === -1 || regIdx === -1) {
+          setError('CSV must contain Name, Email, and Register Number/ID columns.');
+          setLoading(false);
+          return;
+        }
+
+        const studentsToCreate = [];
+        for (let i = 1; i < rows.length; i++) {
+          if (!rows[i] || rows[i].length < 3 || !rows[i][nameIdx]) continue;
+          
+          studentsToCreate.push({
+            name: rows[i][nameIdx].trim(),
+            email: rows[i][emailIdx]?.trim(),
+            studentId: rows[i][regIdx]?.trim(),
+            department: deptIdx !== -1 ? rows[i][deptIdx]?.trim() || 'General' : 'General',
+            section: secIdx !== -1 ? rows[i][secIdx]?.trim() || 'A' : 'A',
+            semester: semIdx !== -1 ? rows[i][semIdx]?.trim() || '1' : '1',
+          });
+        }
+
+        // Batch send to API
+        for (const st of studentsToCreate) {
+           await fetch('/api/students', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(st),
+          }).catch(() => {});
+        }
+
+        onSuccess();
+      } catch {
+        setError('Failed to parse CSV or create students.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 p-3 sm:p-4 overflow-y-auto">
+      <Card className="w-full max-w-md p-5 sm:p-6 mx-auto my-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-2">Import Students CSV</h2>
+        <p className="text-sm text-gray-500 mb-6">
+          Upload a CSV file with columns like <span className="font-semibold text-gray-700">Name, Email, Register Number, Department, Section, Semester</span>.
+        </p>
+
+        {error && (
+          <div className="p-3 mb-4 text-sm text-red-600 bg-red-50 rounded-lg border border-red-100">
+            {error}
+          </div>
+        )}
+
+        <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center hover:bg-gray-50 transition-colors">
+          <input
+            type="file"
+            accept=".csv"
+            onChange={(e) => setFile(e.target.files?.[0] || null)}
+            className="hidden"
+            id="csv-upload"
+          />
+          <Label htmlFor="csv-upload" className="cursor-pointer flex flex-col items-center">
+            <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mb-3">
+              <FileText className="w-6 h-6" />
+            </div>
+            {file ? (
+              <span className="text-sm font-medium text-purple-600">{file.name}</span>
+            ) : (
+              <span className="text-sm font-medium text-gray-600">Click to browse or drag and drop</span>
+            )}
+            <span className="text-xs text-gray-400 mt-1">.csv format only</span>
+          </Label>
+        </div>
+
+        <div className="flex gap-3 pt-6">
+          <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+            Cancel
+          </Button>
+          <Button onClick={handleUpload} disabled={loading || !file} className="flex-1 bg-purple-600 hover:bg-purple-700">
+            {loading ? 'Importing...' : 'Start Import'}
+          </Button>
+        </div>
+      </Card>
     </div>
   );
 }
@@ -334,8 +543,8 @@ function AddStudentModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <Card className="w-full max-w-md p-6 m-4">
+    <div className="fixed inset-0 z-50 bg-black/50 p-3 sm:p-4 overflow-y-auto">
+      <Card className="w-full max-w-md p-5 sm:p-6 mx-auto my-6">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Add New Student</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -481,8 +690,8 @@ function EditStudentModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <Card className="w-full max-w-md p-6 m-4">
+    <div className="fixed inset-0 z-50 bg-black/50 p-3 sm:p-4 overflow-y-auto">
+      <Card className="w-full max-w-md p-5 sm:p-6 mx-auto my-6">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Edit Student</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

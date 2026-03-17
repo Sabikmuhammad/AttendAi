@@ -25,15 +25,20 @@ const InstitutionSchema = new mongoose.Schema(
     },
     plan: {
       type: String,
-      enum: ['starter', 'professional', 'enterprise'],
-      default: 'starter',
+      enum: ['trial', 'starter', 'growth', 'enterprise'],
+      default: 'trial',
       required: true,
     },
     planLimits: {
-      students: { type: Number, default: 500 },
-      faculty: { type: Number, default: 25 },
-      cameras: { type: Number, default: 10 },
-      classes: { type: Number, default: 50 },
+      students: { type: Number, default: 200 },
+      faculty: { type: Number, default: 10 },
+      cameras: { type: Number, default: 3 },
+      classes: { type: Number, default: 3 },
+    },
+    trial: {
+      startDate: { type: Date, default: null },
+      endDate: { type: Date, default: null },
+      isActive: { type: Boolean, default: false },
     },
     domain: {
       type: String,

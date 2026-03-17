@@ -82,14 +82,14 @@ export default function FacultyManagement() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Faculty Management</h1>
           <p className="text-gray-600 mt-1">Manage faculty members and their information</p>
         </div>
         <Button
           onClick={() => setShowAddModal(true)}
-          className="bg-purple-600 hover:bg-purple-700"
+          className="w-full bg-purple-600 hover:bg-purple-700 sm:w-auto"
         >
           <Plus className="w-4 h-4 mr-2" />
           Add Faculty
@@ -97,7 +97,7 @@ export default function FacultyManagement() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 md:gap-6">
         <Card className="p-6">
           <p className="text-sm text-gray-600">Total Faculty</p>
           <p className="text-3xl font-bold text-gray-900 mt-2">{faculty.length}</p>
@@ -116,8 +116,8 @@ export default function FacultyManagement() {
 
       {/* Filters */}
       <Card className="p-6">
-        <div className="flex gap-4">
-          <div className="flex-1 relative">
+        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <Input
               placeholder="Search by name, faculty ID, email, or designation..."
@@ -129,7 +129,7 @@ export default function FacultyManagement() {
           <select
             value={selectedDepartment}
             onChange={(e) => setSelectedDepartment(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent sm:w-56"
           >
             <option value="">All Departments</option>
             {departments.map((dept) => (
@@ -143,7 +143,7 @@ export default function FacultyManagement() {
 
       {/* Faculty Table */}
       <Card className="p-6">
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
             <thead className="border-b border-gray-200">
               <tr>
@@ -244,6 +244,47 @@ export default function FacultyManagement() {
             </tbody>
           </table>
         </div>
+
+        <div className="space-y-3 md:hidden">
+          {loading ? (
+            <p className="text-center py-8 text-gray-500">Loading faculty...</p>
+          ) : filteredFaculty.length === 0 ? (
+            <p className="text-center py-8 text-gray-500">No faculty found</p>
+          ) : (
+            filteredFaculty.map((fac) => (
+              <div key={fac._id} className="rounded-lg border border-gray-200 p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-medium text-gray-900 truncate">{fac.name}</p>
+                    <p className="text-sm text-gray-600 truncate">{fac.email}</p>
+                    <p className="text-sm text-gray-600">{fac.facultyId}</p>
+                    <p className="text-sm text-gray-600">{fac.department}</p>
+                  </div>
+                  {fac.section && fac.semester ? (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 shrink-0">
+                      {fac.section}-{fac.semester}
+                    </span>
+                  ) : null}
+                </div>
+                <div className="mt-3 flex justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setEditingFaculty(fac);
+                      setShowEditModal(true);
+                    }}
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => deleteFaculty(fac._id)}>
+                    <Trash2 className="w-4 h-4 text-red-500" />
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </Card>
 
       {/* Add Faculty Modal */}
@@ -320,8 +361,8 @@ function AddFacultyModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <Card className="w-full max-w-md p-6 m-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-black/50 p-3 sm:p-4 overflow-y-auto">
+      <Card className="w-full max-w-md p-5 sm:p-6 mx-auto my-6 max-h-[90vh] overflow-y-auto">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Add New Faculty</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -459,8 +500,8 @@ function EditFacultyModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <Card className="w-full max-w-md p-6 m-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-black/50 p-3 sm:p-4 overflow-y-auto">
+      <Card className="w-full max-w-md p-5 sm:p-6 mx-auto my-6 max-h-[90vh] overflow-y-auto">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Edit Faculty</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

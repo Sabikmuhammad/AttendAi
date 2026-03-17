@@ -67,10 +67,20 @@ function AdminCameraPageContent() {
   const [message, setMessage] = useState<string | null>(null);
   const [cameraSource, setCameraSource] = useState<'server' | 'browser'>('server');
   const [browserStream, setBrowserStream] = useState<MediaStream | null>(null);
+  const [cameraReady, setCameraReady] = useState(false);
   const [capturedFrames, setCapturedFrames] = useState(0);
   const [detectedStudentsCount, setDetectedStudentsCount] = useState(0);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  const isSecureCameraContext = () => {
+    if (typeof window === 'undefined') return false;
+
+    const host = window.location.hostname;
+    const localhostLike = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+
+    return window.isSecureContext || localhostLike;
+  };
 
   // Fetch active classes on mount
   useEffect(() => {
@@ -101,9 +111,44 @@ function AdminCameraPageContent() {
 
   // Attach stream to video element.
   useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.srcObject = browserStream;
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (!browserStream) {
+      video.srcObject = null;
+      setCameraReady(false);
+      return;
     }
+
+    video.srcObject = browserStream;
+    video.setAttribute('playsinline', 'true');
+    video.setAttribute('webkit-playsinline', 'true');
+
+    const tryPlay = async () => {
+      try {
+        await video.play();
+        setCameraReady(true);
+      } catch {
+        // Safari can reject immediately; we retry on metadata/canplay events below.
+      }
+    };
+
+    const onLoadedMetadata = () => {
+      void tryPlay();
+    };
+
+    const onCanPlay = () => {
+      void tryPlay();
+    };
+
+    video.addEventListener('loadedmetadata', onLoadedMetadata);
+    video.addEventListener('canplay', onCanPlay);
+    void tryPlay();
+
+    return () => {
+      video.removeEventListener('loadedmetadata', onLoadedMetadata);
+      video.removeEventListener('canplay', onCanPlay);
+    };
   }, [browserStream]);
 
   useEffect(() => {
@@ -177,6 +222,29 @@ function AdminCameraPageContent() {
     });
   };
 
+  const uploadCapturedFrame = async (blob: Blob) => {
+    try {
+      const formData = new FormData();
+      formData.append('image', blob, 'frame.jpg');
+      formData.append('classId', selectedClass);
+
+      const response = await fetch('/api/detect-faces', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+      setCapturedFrames((prev) => prev + 1);
+
+      if (data.success && Array.isArray(data.detectedStudents) && data.detectedStudents.length > 0) {
+        setDetectedStudentsCount((prev) => prev + data.detectedStudents.length);
+        await markAttendance(data.detectedStudents);
+      }
+    } catch (err) {
+      console.error('Browser camera detect failed:', err);
+    }
+  };
+
   const captureAndDetect = async () => {
     if (!videoRef.current || !canvasRef.current || !selectedClass) return;
 
@@ -184,7 +252,7 @@ function AdminCameraPageContent() {
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
 
-    if (!context || video.videoWidth === 0 || video.videoHeight === 0) {
+    if (!context || !cameraReady || video.readyState < 2 || video.videoWidth === 0 || video.videoHeight === 0) {
       return;
     }
 
@@ -192,30 +260,26 @@ function AdminCameraPageContent() {
     canvas.height = video.videoHeight;
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    canvas.toBlob(async (blob) => {
-      if (!blob) return;
+    if (canvas.toBlob) {
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        void uploadCapturedFrame(blob);
+      }, 'image/jpeg', 0.8);
+      return;
+    }
 
-      try {
-        const formData = new FormData();
-        formData.append('image', blob, 'frame.jpg');
-        formData.append('classId', selectedClass);
+    // Fallback for browsers with unreliable toBlob behavior.
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+    const base64 = dataUrl.split(',')[1];
+    if (!base64) return;
 
-        const response = await fetch('/api/detect-faces', {
-          method: 'POST',
-          body: formData,
-        });
-
-        const data = await response.json();
-        setCapturedFrames((prev) => prev + 1);
-
-        if (data.success && Array.isArray(data.detectedStudents) && data.detectedStudents.length > 0) {
-          setDetectedStudentsCount((prev) => prev + data.detectedStudents.length);
-          await markAttendance(data.detectedStudents);
-        }
-      } catch (err) {
-        console.error('Browser camera detect failed:', err);
-      }
-    }, 'image/jpeg', 0.8);
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    const fallbackBlob = new Blob([bytes], { type: 'image/jpeg' });
+    void uploadCapturedFrame(fallbackBlob);
   };
 
   const handleStartMonitoring = async () => {
@@ -230,6 +294,18 @@ function AdminCameraPageContent() {
 
     try {
       if (cameraSource === 'browser') {
+        if (!isSecureCameraContext()) {
+          setError(
+            'Mobile camera requires HTTPS. Open this page over https:// (or use localhost on the same device). Current URL is not secure.'
+          );
+          return;
+        }
+
+        if (!navigator.mediaDevices?.getUserMedia) {
+          setError('Camera API is not available in this browser/device.');
+          return;
+        }
+
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: { ideal: 'environment' },
@@ -240,6 +316,7 @@ function AdminCameraPageContent() {
         });
 
         setBrowserStream(stream);
+        setCameraReady(false);
         setCapturedFrames(0);
         setDetectedStudentsCount(0);
 
@@ -303,6 +380,7 @@ function AdminCameraPageContent() {
           browserStream.getTracks().forEach((track) => track.stop());
           setBrowserStream(null);
         }
+        setCameraReady(false);
         setMonitoring(false);
         setMessage('Browser camera monitoring stopped');
         setStats(null);
@@ -415,6 +493,11 @@ function AdminCameraPageContent() {
             <p className="text-xs text-muted-foreground">
               Choose Browser Camera to use your phone camera directly from mobile browser.
             </p>
+            {!isSecureCameraContext() && cameraSource === 'browser' && (
+              <p className="text-xs text-red-600">
+                Browser camera is blocked on non-HTTPS pages. Use HTTPS to enable mobile camera.
+              </p>
+            )}
           </div>
 
           <div className="flex gap-4">
@@ -460,6 +543,11 @@ function AdminCameraPageContent() {
                 muted
                 className="w-full rounded-md border bg-black max-h-80 object-cover"
               />
+              {!cameraReady && (
+                <p className="text-xs text-muted-foreground">
+                  Preparing camera stream... if this stays black, tap the video area once to allow playback.
+                </p>
+              )}
               <canvas ref={canvasRef} className="hidden" />
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="rounded-md bg-gray-50 p-3 border">

@@ -1,88 +1,83 @@
 'use client';
 
 import Link from 'next/link';
-import { Search, Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { Moon, Sun } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { DocsSearch } from '@/components/docs/DocsSearch';
 
 export function DocsNavbar() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem('attendai-docs-theme');
+    if (!stored) return;
+    const shouldDark = stored === 'dark';
+    document.documentElement.classList.toggle('dark', shouldDark);
+    setDarkMode(shouldDark);
+  }, []);
+
+  const toggleTheme = () => {
+    const root = document.documentElement;
+    const next = !root.classList.contains('dark');
+    root.classList.toggle('dark', next);
+    setDarkMode(next);
+    window.localStorage.setItem('attendai-docs-theme', next ? 'dark' : 'light');
+  };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 h-16 border-b border-white/10 bg-black/80 backdrop-blur-xl">
-      <div className="h-full max-w-full mx-auto px-6 flex items-center justify-between">
+    <header className="sticky top-0 z-50 border-b border-zinc-200/80 bg-white/90 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/85">
+      <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-4 px-4 sm:px-6 lg:px-8">
         {/* Logo */}
-        <Link href="/" className="flex items-center space-x-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center">
-            <span className="text-white font-bold text-sm">AI</span>
-          </div>
-          <span className="text-xl font-bold text-white">AttendAI</span>
-          <span className="text-sm text-gray-400 hidden md:inline">/ Docs</span>
+        <Link
+          href="/docs"
+          className="shrink-0 text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 hover:opacity-75 transition"
+        >
+          AttendAI <span className="text-zinc-400 font-normal">Docs</span>
         </Link>
 
-        {/* Search Bar (Desktop) */}
-        <div className="hidden md:flex flex-1 max-w-md mx-8">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search documentation..."
-              className="w-full pl-10 pr-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-            />
-          </div>
+        {/* Divider */}
+        <div className="hidden h-5 w-px bg-zinc-200 dark:bg-zinc-800 md:block" />
+
+        {/* Top nav links */}
+        <nav className="hidden items-center gap-0.5 md:flex">
+          {[
+            { href: '/docs/platform', label: 'Platform' },
+            { href: '/docs/security', label: 'Security' },
+            { href: '/docs/faq', label: 'FAQ' },
+          ].map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              className="rounded-md px-3 py-1.5 text-sm text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
+
+        {/* Search — grows to fill space */}
+        <div className="flex-1 max-w-sm ml-auto mr-2">
+          <DocsSearch />
         </div>
 
-        {/* Right Links */}
-        <div className="flex items-center space-x-4">
+        {/* Actions */}
+        <div className="flex items-center gap-2">
+          <button
+            aria-label="Toggle theme"
+            onClick={toggleTheme}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+          >
+            {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
+
           <Link
             href="/"
-            className="hidden md:inline-block text-sm text-gray-400 hover:text-white transition-colors"
+            className="hidden rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300 sm:inline-flex"
           >
-            Home
+            Open App
           </Link>
-          <Link
-            href="/dashboard"
-            className="hidden md:inline-block px-4 py-2 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-200 transition-colors"
-          >
-            Dashboard
-          </Link>
-
-          {/* Mobile Menu Toggle */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-gray-400 hover:text-white"
-          >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
         </div>
       </div>
-
-      {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden absolute top-16 left-0 right-0 bg-black/95 backdrop-blur-xl border-b border-white/10 p-4">
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search documentation..."
-              className="w-full pl-10 pr-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-400"
-            />
-          </div>
-          <div className="space-y-2">
-            <Link
-              href="/"
-              className="block px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-lg"
-            >
-              Home
-            </Link>
-            <Link
-              href="/dashboard"
-              className="block px-4 py-2 text-sm text-white bg-white/10 rounded-lg"
-            >
-              Dashboard
-            </Link>
-          </div>
-        </div>
-      )}
-    </nav>
+    </header>
   );
 }

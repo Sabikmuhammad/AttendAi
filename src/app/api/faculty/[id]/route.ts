@@ -4,6 +4,7 @@ import { connectDB } from '@/lib/mongodb';
 import Faculty from '@/models/Faculty';
 import User from '@/models/User';
 import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
+import { requireTenantUser } from '@/lib/auth-guards';
 
 // GET single faculty
 export async function GET(
@@ -13,6 +14,10 @@ export async function GET(
   try {
     await connectDB();
     const tenant = await getTenantContext(req);
+    const guard = requireTenantUser(tenant, {
+      roles: ['super_admin', 'institution_admin', 'department_admin', 'admin'],
+    });
+    if (guard) return guard;
 
     const { id } = await params;
     const faculty = await Faculty.findOne(withInstitutionScope({ _id: id }, tenant.institutionId))
@@ -59,6 +64,10 @@ export async function PATCH(
   try {
     await connectDB();
     const tenant = await getTenantContext(req);
+    const guard = requireTenantUser(tenant, {
+      roles: ['super_admin', 'institution_admin', 'department_admin', 'admin'],
+    });
+    if (guard) return guard;
 
     const { id } = await params;
     const body = await req.json();
@@ -147,6 +156,10 @@ export async function DELETE(
   try {
     await connectDB();
     const tenant = await getTenantContext(req);
+    const guard = requireTenantUser(tenant, {
+      roles: ['super_admin', 'institution_admin', 'department_admin', 'admin'],
+    });
+    if (guard) return guard;
 
     const { id } = await params;
     

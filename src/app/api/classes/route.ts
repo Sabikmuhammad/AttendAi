@@ -4,12 +4,15 @@ import { connectDB } from '@/lib/mongodb';
 import Class from '@/models/Class';
 import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
 import { synchronizeClassStatuses } from '@/lib/class-status';
+import { requireTenantUser } from '@/lib/auth-guards';
 
 // GET all classes
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
     const tenant = await getTenantContext(req);
+    const guard = requireTenantUser(tenant);
+    if (guard) return guard;
 
     await synchronizeClassStatuses(
       tenant.institutionId || process.env.DEFAULT_INSTITUTION_ID || 'default-institution'
@@ -43,6 +46,10 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
     const tenant = await getTenantContext(req);
+    const guard = requireTenantUser(tenant, {
+      roles: ['super_admin', 'institution_admin', 'department_admin', 'admin', 'faculty'],
+    });
+    if (guard) return guard;
 
     const body = await req.json();
     const {

@@ -62,7 +62,7 @@ export function Sidebar({ navItems, title, isMobileMenuOpen, onClose }: SidebarP
   };
 
   return (
-    <aside className={`fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-200 flex flex-col z-50 transition-transform duration-300 lg:translate-x-0 ${
+    <aside className={`fixed left-0 top-0 h-screen w-[85vw] max-w-xs sm:w-64 bg-white border-r border-gray-200 flex flex-col z-50 transition-transform duration-300 lg:translate-x-0 ${
       isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
     }`}>
       {/* Logo & Title */}
@@ -71,9 +71,9 @@ export function Sidebar({ navItems, title, isMobileMenuOpen, onClose }: SidebarP
           <div className="w-9 h-9 bg-gradient-to-br from-purple-600 to-purple-700 rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
             <span className="text-white font-bold text-lg">A</span>
           </div>
-          <div>
+          <div className="min-w-0">
             <span className="text-lg font-semibold text-gray-900 block leading-none">AttendAI</span>
-            <span className="text-xs text-gray-500 mt-0.5 block">{title}</span>
+            <span className="text-xs text-gray-500 mt-0.5 block truncate">{title}</span>
           </div>
         </Link>
       </div>

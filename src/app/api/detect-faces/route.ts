@@ -4,6 +4,7 @@ import { connectDB } from '@/lib/mongodb';
 import Class from '@/models/Class';
 import Student from '@/models/Student';
 import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
+import { requireTenantUser } from '@/lib/auth-guards';
 
 /**
  * API endpoint to detect faces in uploaded images
@@ -12,6 +13,11 @@ import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
 export async function POST(request: NextRequest) {
   try {
     const tenant = await getTenantContext(request);
+    const guard = requireTenantUser(tenant, {
+      roles: ['super_admin', 'institution_admin', 'department_admin', 'admin', 'faculty'],
+    });
+    if (guard) return guard;
+
     const contentType = request.headers.get('content-type') || '';
     if (!contentType.includes('multipart/form-data')) {
       return NextResponse.json(

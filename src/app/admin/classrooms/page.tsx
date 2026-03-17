@@ -115,7 +115,7 @@ export default function ClassroomsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Classrooms</h1>
           <p className="text-gray-600 mt-2">
@@ -123,7 +123,7 @@ export default function ClassroomsPage() {
           </p>
         </div>
         <Link href="/admin/create-classroom">
-          <Button className="bg-purple-600 hover:bg-purple-700">
+          <Button className="w-full bg-purple-600 hover:bg-purple-700 sm:w-auto">
             <Plus className="w-4 h-4 mr-2" />
             Create Classroom
           </Button>
@@ -139,7 +139,7 @@ export default function ClassroomsPage() {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -196,7 +196,7 @@ export default function ClassroomsPage() {
       </div>
 
       {/* Filter Buttons */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button
           variant={filter === 'all' ? 'default' : 'outline'}
           size="sm"

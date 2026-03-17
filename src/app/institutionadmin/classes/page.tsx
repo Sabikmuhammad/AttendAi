@@ -1,1 +1,5 @@
-export { default } from '@/app/admin/classes/page';
+import ClassesPage from '@/app/admin/classes/page';
+
+export default function InstitutionAdminClassesPage() {
+  return <ClassesPage />;
+}

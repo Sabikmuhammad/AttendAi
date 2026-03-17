@@ -3,12 +3,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Attendance from '@/models/Attendance';
 import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
+import { requireTenantUser } from '@/lib/auth-guards';
 
 // GET attendance records with various filters
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
     const tenant = await getTenantContext(req);
+    const guard = requireTenantUser(tenant);
+    if (guard) {
+      return guard;
+    }
 
     const { searchParams } = new URL(req.url);
     const classId = searchParams.get('classId');
@@ -77,6 +82,10 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
     const tenant = await getTenantContext(req);
+    const guard = requireTenantUser(tenant);
+    if (guard) {
+      return guard;
+    }
 
     const body = await req.json();
     const { classId, studentId, status, confidence, imageUrl, detectedAt } = body;
