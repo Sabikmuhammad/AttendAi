@@ -93,6 +93,117 @@ export async function sendOTPEmail({ email, otp, name }: SendOTPEmailParams) {
   }
 }
 
+interface SendInstitutionWelcomeEmailParams {
+  email: string;
+  name: string;
+  institutionName: string;
+  otp: string;
+  registerUrl: string;
+  loginUrl: string;
+}
+
+export async function sendInstitutionWelcomeEmail({
+  email,
+  name,
+  institutionName,
+  otp,
+  registerUrl,
+  loginUrl,
+}: SendInstitutionWelcomeEmailParams) {
+  try {
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+      to: email,
+      subject: `Welcome to AttendAI, ${institutionName}!`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Welcome to AttendAI</title>
+          </head>
+          <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f9fafb;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; padding: 40px 20px;">
+              <tr>
+                <td align="center">
+                  <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+                    <!-- Header -->
+                    <tr>
+                      <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px; text-align: center;">
+                        <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">AttendAI</h1>
+                        <p style="margin: 10px 0 0; color: rgba(255, 255, 255, 0.9); font-size: 16px;">Welcome aboard, ${institutionName}!</p>
+                      </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                      <td style="padding: 40px;">
+                        <h2 style="margin: 0 0 16px; color: #111827; font-size: 24px; font-weight: 600;">Hello ${name}! 👋</h2>
+                        <p style="margin: 0 0 24px; color: #6b7280; font-size: 16px; line-height: 1.6;">
+                          Thank you for setting up <strong>${institutionName}</strong> on AttendAI. To complete your administrator registration, please verify your email using the code below:
+                        </p>
+                        
+                        <!-- OTP Box -->
+                        <table width="100%" cellpadding="0" cellspacing="0" style="margin: 32px 0;">
+                          <tr>
+                            <td align="center" style="background-color: #f3f4f6; border-radius: 12px; padding: 32px;">
+                              <div style="font-size: 14px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; font-weight: 500;">Your Admin Verification Code</div>
+                              <div style="font-size: 48px; font-weight: 700; color: #667eea; letter-spacing: 8px; font-family: 'Courier New', monospace;">${otp}</div>
+                            </td>
+                          </tr>
+                        </table>
+                        
+                        <p style="margin: 0 0 24px; color: #6b7280; font-size: 16px; line-height: 1.6;">
+                          Once verified, you can invite your students and faculty to join your institution. Share the link below with them so they can securely register under <strong>${institutionName}</strong>:
+                        </p>
+
+                        <div style="background-color: #f3f4f6; padding: 16px; border-radius: 8px; margin-bottom: 32px; word-break: break-all;">
+                          <strong style="color: #374151;">Registration Link:</strong><br>
+                          <a href="${registerUrl}" style="color: #667eea; text-decoration: none;">${registerUrl}</a>
+                        </div>
+                        
+                        <p style="margin: 0 0 24px; color: #6b7280; font-size: 16px; line-height: 1.6;">
+                          Existing members can log in directly here:
+                        </p>
+                        
+                        <div style="background-color: #f3f4f6; padding: 16px; border-radius: 8px; margin-bottom: 32px; word-break: break-all;">
+                          <strong style="color: #374151;">Login Link:</strong><br>
+                          <a href="${loginUrl}" style="color: #667eea; text-decoration: none;">${loginUrl}</a>
+                        </div>
+                      </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                      <td style="background-color: #f9fafb; padding: 24px 40px; text-align: center; border-top: 1px solid #e5e7eb;">
+                        <p style="margin: 0; color: #9ca3af; font-size: 12px; line-height: 1.6;">
+                          © 2026 AttendAI. All rights reserved.<br>
+                          This is an automated email. Please do not reply.
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </body>
+        </html>
+      `,
+    });
+
+    if (error) {
+      console.error('Resend email error:', error);
+      return { success: false, error: (error as { message?: string }).message };
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error('Failed to send Welcome/OTP email:', error);
+    return { success: false, error: (error as Error).message || 'Failed to send email' };
+  }
+}
+
 export async function sendWelcomeEmail({ email, name }: { email: string; name: string }) {
   try {
     const { data, error } = await resend.emails.send({

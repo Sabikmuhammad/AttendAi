@@ -6,10 +6,13 @@ import User from '@/models/User';
 import OTP from '@/models/OTP';
 import Department from '@/models/Department';
 import { activateTrial } from '@/lib/trial';
-import { sendOTPEmail } from '@/lib/email';
+import { sendInstitutionWelcomeEmail } from '@/lib/email';
 import { withInstitutionScope } from '@/lib/tenant';
 
 export async function POST(req: NextRequest) {
+  let createdInstitutionId: string | null = null;
+  let createdAdminUserId: string | null = null;
+
   try {
     await connectDB();
     const body = await req.json();
@@ -40,6 +43,8 @@ export async function POST(req: NextRequest) {
       itAdminContact,
     } = body;
 
+    const normalizedAdminEmail = String(adminEmail || '').toLowerCase().trim();
+
     // ── Validation ──────────────────────────────────────────────────────────
     if (!institutionName || !institutionType || !country || !adminName || !adminEmail || !adminPassword) {
       return NextResponse.json(
@@ -52,6 +57,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { success: false, error: 'Password must be at least 8 characters.' },
         { status: 400 }
+      );
+    }
+
+    // Guard against duplicate admin emails early to avoid partial onboarding records.
+    const existingGlobalUser = await User.findOne({ email: normalizedAdminEmail }).lean();
+    if (existingGlobalUser) {
+      return NextResponse.json(
+        { success: false, error: 'An account with this admin email already exists. Please use a different email.' },
+        { status: 409 }
       );
     }
 
@@ -91,7 +105,7 @@ export async function POST(req: NextRequest) {
       subdomain: uniqueSubdomain,
       domain: `attendai.com`,
       address: city ? `${city}, ${country}` : country,
-      contactEmail: adminEmail,
+      contactEmail: normalizedAdminEmail,
       status: 'trial',
       plan: 'trial',
       metadata: {
@@ -114,6 +128,7 @@ export async function POST(req: NextRequest) {
     });
 
     const institutionId = String(institution._id);
+    createdInstitutionId = institutionId;
 
     // ── Create Departments ──────────────────────────────────────────────────
     if (departmentNames && Array.isArray(departmentNames) && departmentNames.length > 0) {
@@ -135,10 +150,11 @@ export async function POST(req: NextRequest) {
     await activateTrial(institutionId);
 
     // ── Create admin user ───────────────────────────────────────────────────
-    const existingUser = await User.findOne({ email: adminEmail.toLowerCase(), institutionId });
+    const existingUser = await User.findOne({ email: normalizedAdminEmail, institutionId });
     if (existingUser) {
       // Roll back institution creation
       await Institution.findByIdAndDelete(institutionId);
+      createdInstitutionId = null;
       return NextResponse.json(
         { success: false, error: 'An account with this email already exists.' },
         { status: 409 }
@@ -149,24 +165,39 @@ export async function POST(req: NextRequest) {
 
     const adminUser = await User.create({
       name: adminName,
-      email: adminEmail.toLowerCase(),
+      email: normalizedAdminEmail,
       passwordHash,
       password: passwordHash,
       role: 'admin',
       institutionId,
       isVerified: false,
     });
+    createdAdminUserId = String(adminUser._id);
 
     // ── Create OTP + send verification email ───────────────────────────────
-    await OTP.deleteMany(withInstitutionScope({ email: adminEmail.toLowerCase() }, institutionId));
+    await OTP.deleteMany(withInstitutionScope({ email: normalizedAdminEmail }, institutionId));
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    await OTP.create({ email: adminEmail.toLowerCase(), institutionId, otp });
+    await OTP.create({ email: normalizedAdminEmail, institutionId, otp });
 
-    const emailResult = await sendOTPEmail({ email: adminEmail, otp, name: adminName });
+    const origin = req.nextUrl.origin;
+    const registerUrl = `${origin}/register?institutionCode=${institution.code}`;
+    const loginUrl = `${origin}/login`;
+
+    const emailResult = await sendInstitutionWelcomeEmail({ 
+      email: adminEmail, 
+      otp, 
+      name: adminName,
+      institutionName: institution.name,
+      registerUrl,
+      loginUrl
+    });
+
     if (!emailResult.success) {
       // Roll back partial onboarding so the institution isn't stuck half-created.
       await User.findByIdAndDelete(adminUser._id);
       await Institution.findByIdAndDelete(institutionId);
+      createdAdminUserId = null;
+      createdInstitutionId = null;
       return NextResponse.json(
         { success: false, error: 'Failed to send verification email. Please try again.' },
         { status: 500 }
@@ -194,6 +225,30 @@ export async function POST(req: NextRequest) {
     return response;
   } catch (error) {
     console.error('Onboarding error:', error);
+
+    // Best-effort rollback if onboarding failed after institution/admin creation.
+    if (createdAdminUserId) {
+      await User.findByIdAndDelete(createdAdminUserId);
+    }
+    if (createdInstitutionId) {
+      await Institution.findByIdAndDelete(createdInstitutionId);
+    }
+
+    const mongoError = error as { code?: number; keyPattern?: Record<string, 1>; keyValue?: Record<string, string> };
+    if (mongoError?.code === 11000) {
+      const duplicateField = Object.keys(mongoError.keyPattern || {})[0] || 'field';
+      const duplicateValue = mongoError.keyValue?.[duplicateField];
+      return NextResponse.json(
+        {
+          success: false,
+          error: duplicateValue
+            ? `Duplicate value for ${duplicateField}: ${duplicateValue}`
+            : `Duplicate value detected for ${duplicateField}.`,
+        },
+        { status: 409 }
+      );
+    }
+
     return NextResponse.json(
       { success: false, error: 'Onboarding failed. Please try again.' },
       { status: 500 }

@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import Webcam from 'react-webcam';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
-import { Loader2, Mail, Lock, User, Shield, GraduationCap, Users, Hash, Building2 } from 'lucide-react';
+import { Loader2, Mail, Lock, User, Shield, GraduationCap, Users, Hash, Building2, Camera, Image as ImageIcon } from 'lucide-react';
 
 function RegisterForm() {
   const router = useRouter();
@@ -29,6 +30,24 @@ function RegisterForm() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isCodeLocked, setIsCodeLocked] = useState(false);
+  
+  // Face capture states
+  const [faceImage, setFaceImage] = useState<File | null>(null);
+  const [showWebcam, setShowWebcam] = useState(false);
+  const webcamRef = useRef<Webcam>(null);
+
+  const capture = useCallback(() => {
+    const imageSrc = webcamRef.current?.getScreenshot();
+    if (imageSrc) {
+      fetch(imageSrc)
+        .then(res => res.blob())
+        .then(blob => {
+          const file = new File([blob], "captured-face.jpg", { type: "image/jpeg" });
+          setFaceImage(file);
+          setShowWebcam(false);
+        });
+    }
+  }, [webcamRef]);
 
   useEffect(() => {
     const code = searchParams.get('institutionCode');
@@ -83,24 +102,34 @@ function RegisterForm() {
       return;
     }
 
+    if (formData.role === 'student' && !faceImage) {
+      setError('A true face image is required to register as a student');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
+      const submitData = new FormData();
+      submitData.append('name', formData.name);
+      submitData.append('email', formData.email);
+      submitData.append('password', formData.password);
+      submitData.append('role', formData.role);
+      submitData.append('institutionCode', formData.institutionCode);
+      submitData.append('department', formData.department);
+      
+      if (formData.role === 'student') {
+        submitData.append('studentId', formData.studentId);
+        submitData.append('section', formData.section);
+        submitData.append('semester', formData.semester);
+        if (faceImage) submitData.append('image', faceImage);
+      } else {
+        submitData.append('facultyId', formData.facultyId);
+      }
+
       const response = await fetch('/api/auth/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          role: formData.role,
-          institutionCode: formData.institutionCode,
-          studentId: formData.role === 'student' ? formData.studentId : undefined,
-          facultyId: formData.role === 'faculty' ? formData.facultyId : undefined,
-          department: formData.department,
-          section: formData.role === 'student' ? formData.section : undefined,
-          semester: formData.role === 'student' ? formData.semester : undefined,
-        }),
+        body: submitData,
       });
 
       const data = await response.json();
@@ -377,6 +406,60 @@ function RegisterForm() {
                   </select>
                 </div>
               </>
+            )}
+
+            {/* Face Capture Section */}
+            {formData.role === 'student' && (
+              <div className="space-y-3 pt-4 border-t border-gray-100">
+                <Label className="text-gray-700 font-medium">Face Capture (Required)</Label>
+                <div className="flex flex-col gap-4">
+                  {faceImage ? (
+                    <div className="relative">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={URL.createObjectURL(faceImage)} alt="Captured face" className="w-full h-auto rounded-lg shadow-sm border border-gray-200" />
+                      <Button type="button" variant="destructive" size="sm" className="absolute top-2 right-2" onClick={() => setFaceImage(null)}>
+                        Remove
+                      </Button>
+                    </div>
+                  ) : showWebcam ? (
+                    <div className="space-y-4">
+                      <div className="rounded-lg overflow-hidden border border-gray-200 shadow-sm relative bg-black">
+                        <Webcam
+                          audio={false}
+                          ref={webcamRef}
+                          screenshotFormat="image/jpeg"
+                          videoConstraints={{ facingMode: "user" }}
+                          className="w-full h-auto"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button type="button" variant="outline" className="w-full" onClick={() => setShowWebcam(false)}>
+                          Cancel
+                        </Button>
+                        <Button type="button" className="w-full bg-violet-600 hover:bg-violet-700 text-white" onClick={capture}>
+                          <Camera className="w-4 h-4 mr-2" />
+                          Take Photo
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button type="button" variant="outline" className="h-[88px] flex flex-col items-center justify-center gap-2" onClick={() => setShowWebcam(true)}>
+                        <Camera className="w-6 h-6 text-violet-600" />
+                        <span className="text-sm">Use Webcam</span>
+                      </Button>
+                      <Label htmlFor="face-upload" className="h-[88px] flex flex-col items-center justify-center gap-2 border border-gray-200 rounded-md bg-white hover:bg-gray-50 cursor-pointer shadow-sm">
+                        <ImageIcon className="w-6 h-6 text-violet-600" />
+                        <span className="text-sm font-medium">Upload Photo</span>
+                        <input id="face-upload" type="file" accept="image/*" className="hidden" onChange={(e) => { 
+                          if (e.target.files && e.target.files[0]) setFaceImage(e.target.files[0]); 
+                        }} />
+                      </Label>
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-500">Provide a clear, well-lit image of your face. This will be used for AI attendance tracking securely.</p>
+                </div>
+              </div>
             )}
 
             {/* Password */}
