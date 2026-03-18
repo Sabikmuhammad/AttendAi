@@ -103,7 +103,8 @@ export async function POST(req: NextRequest) {
       name: institutionName,
       code,
       subdomain: uniqueSubdomain,
-      domain: `attendai.com`,
+      // Keep domain unique to satisfy existing unique DB index on institutions.domain.
+      domain: `${code.toLowerCase()}.attendai.com`,
       address: city ? `${city}, ${country}` : country,
       contactEmail: normalizedAdminEmail,
       status: 'trial',
