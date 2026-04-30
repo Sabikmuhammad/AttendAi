@@ -5,26 +5,26 @@ import { Video, Scan, UserCheck, Database } from 'lucide-react';
 const steps = [
   {
     icon: Video,
-    title: 'Camera Capture',
-    description: 'CCTV cameras capture classroom video in real time.',
+    title: 'Camera Captures Classroom',
+    description: 'Classroom cameras automatically capture live video during each session.',
     color: 'purple'
   },
   {
     icon: Scan,
-    title: 'Face Detection',
-    description: 'AI detects human faces in the video stream.',
+    title: 'AI Detects Faces',
+    description: 'AttendAI instantly detects all student faces in real time.',
     color: 'blue'
   },
   {
     icon: UserCheck,
-    title: 'Face Recognition',
-    description: 'Faces are matched with registered students.',
+    title: 'Students Are Recognized',
+    description: 'Each face is matched with registered students using AI.',
     color: 'green'
   },
   {
     icon: Database,
-    title: 'Attendance Recorded',
-    description: 'Attendance is stored automatically in the database.',
+    title: 'Attendance Is Marked Automatically',
+    description: 'Attendance is automatically recorded and available instantly.',
     color: 'orange'
   }
 ];
@@ -38,7 +38,8 @@ const colorClasses = {
 
 export function HowItWorksSection() {
   return (
-    <section className="py-16 sm:py-24 lg:py-32 bg-black relative overflow-hidden">
+    <section className="pt-32 pb-16 sm:pt-40 sm:pb-24 lg:pt-48 lg:pb-32 bg-black relative overflow-hidden">
+      <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-transparent to-black z-0" />
       {/* Background Effects */}
       <div 
         className="absolute inset-0 opacity-[0.02]"
@@ -53,10 +54,10 @@ export function HowItWorksSection() {
         {/* Header */}
         <div className="text-center mb-12 sm:mb-16 lg:mb-20">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4">
-            How It Works
+            Turn Any Classroom Into an AI Attendance System
           </h2>
           <p className="text-base sm:text-lg text-gray-400 max-w-2xl mx-auto">
-            AttendAI automates attendance in four simple steps
+            From live classroom video to verified attendance — powered entirely by AI with zero manual effort.
           </p>
         </div>
 
@@ -66,10 +67,10 @@ export function HowItWorksSection() {
             <div key={index} className="relative">
               {/* Connector Line (desktop only) */}
               {index < steps.length - 1 && (
-                <div className="hidden lg:block absolute top-16 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-white/20 to-transparent" />
+                <div className="hidden lg:block absolute top-16 left-full w-20 h-0.5 bg-gradient-to-r from-white/20 to-transparent" />
               )}
               
-              <div className="relative p-6 sm:p-8 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all duration-300">
+              <div className="relative p-8 sm:p-10 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl shadow-lg hover:shadow-2xl hover:bg-white/10 hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300">
                 {/* Step Number */}
                 <div className="absolute -top-3 -left-3 sm:-top-4 sm:-left-4 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black border border-white/20 flex items-center justify-center text-xs sm:text-sm font-bold text-white">
                   {index + 1}
@@ -81,16 +82,22 @@ export function HowItWorksSection() {
                 </div>
 
                 {/* Content */}
-                <h3 className="text-lg sm:text-xl font-semibold text-white mb-2 sm:mb-3">
+                <h3 className="text-xl sm:text-2xl font-semibold text-white mb-2 sm:mb-3">
                   {step.title}
                 </h3>
                 <p className="text-sm sm:text-base text-gray-400 leading-relaxed">
                   {step.description}
                 </p>
+                {index === steps.length - 1 && (
+                  <p className="text-xs text-green-400 mt-2">
+                    Rahul (CS001) ✔ Present • 98% Confidence
+                  </p>
+                )}
               </div>
             </div>
           ))}
         </div>
+        
       </div>
     </section>
   );

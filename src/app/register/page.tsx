@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
-import { Loader2, Mail, Lock, User, Shield, GraduationCap, Users, Hash, Building2, Camera, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Mail, Lock, User, Shield, GraduationCap, Users, Hash, Building2, Camera, Image as ImageIcon, Eye, EyeOff } from 'lucide-react';
 
 function RegisterForm() {
   const router = useRouter();
@@ -35,6 +35,10 @@ function RegisterForm() {
   const [faceImage, setFaceImage] = useState<File | null>(null);
   const [showWebcam, setShowWebcam] = useState(false);
   const webcamRef = useRef<Webcam>(null);
+
+  // Show/hide password toggles
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const capture = useCallback(() => {
     const imageSrc = webcamRef.current?.getScreenshot();
@@ -150,12 +154,15 @@ function RegisterForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-8 bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-50 relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
-        <div className="absolute top-40 -left-40 w-80 h-80 bg-violet-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
-        <div className="absolute -bottom-40 left-1/2 w-80 h-80 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-8 bg-black relative overflow-hidden">
+      {/* Subtle grid overlay */}
+      <div className="pointer-events-none absolute inset-0 opacity-[0.06] [background-image:linear-gradient(to_right,#000_1px,transparent_1px),linear-gradient(to_bottom,#000_1px,transparent_1px)] [background-size:24px_24px]" />
+      {/* Radial glow backgrounds */}
+      <div className="absolute inset-0">
+        {/* Radial spotlight */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(139,92,246,0.25),transparent_40%)]" />
+        {/* Secondary glow */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(99,102,241,0.15),transparent_40%)]" />
       </div>
 
       <motion.div
@@ -168,28 +175,30 @@ function RegisterForm() {
           <motion.h1
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-3xl sm:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-indigo-600 mb-2"
+            className="text-3xl sm:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-indigo-400 mb-2"
           >
             Join AttendAI
           </motion.h1>
-          <p className="text-gray-600">Create your account and get started</p>
+          <p className="text-gray-400">Create your account and get started</p>
         </div>
 
-        <Card className="p-5 sm:p-8 shadow-2xl border-0 bg-white/80 backdrop-blur-xl">
+        <Card className="p-6 sm:p-10 shadow-2xl shadow-purple-500/10 border border-white/10 bg-white/[0.04] backdrop-blur-xl rounded-2xl">
           {error && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg"
+              className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg"
             >
-              <p className="text-sm text-red-600">{error}</p>
+              <p className="text-sm text-red-400">{error}</p>
             </motion.div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Section Header: Basic Info */}
+            <div className="text-xs font-semibold uppercase tracking-widest text-violet-500">Basic Info</div>
             {/* Full Name */}
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-gray-700 font-medium">
+              <Label htmlFor="name" className="text-gray-300 font-medium">
                 Full Name
               </Label>
               <div className="relative">
@@ -200,7 +209,7 @@ function RegisterForm() {
                   placeholder="John Doe"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="pl-10 h-12 text-base border-gray-300 focus:border-violet-500 focus:ring-violet-500"
+                  className="pl-10 h-12 text-base border border-white/10 bg-white/5 text-white placeholder-gray-500 hover:bg-white/[0.08] focus:border-violet-500 focus:ring-violet-500/30 transition"
                   required
                   disabled={isLoading}
                 />
@@ -209,7 +218,7 @@ function RegisterForm() {
 
             {/* Email */}
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-gray-700 font-medium">
+              <Label htmlFor="email" className="text-gray-300 font-medium">
                 Email Address
               </Label>
               <div className="relative">
@@ -220,7 +229,7 @@ function RegisterForm() {
                   placeholder="you@example.com"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="pl-10 h-12 text-base border-gray-300 focus:border-violet-500 focus:ring-violet-500"
+                  className="pl-10 h-12 text-base border border-white/10 bg-white/5 text-white placeholder-gray-500 hover:bg-white/[0.08] focus:border-violet-500 focus:ring-violet-500/30 transition"
                   required
                   disabled={isLoading}
                 />
@@ -229,7 +238,7 @@ function RegisterForm() {
 
             {/* Institution Code */}
             <div className="space-y-2">
-              <Label htmlFor="institutionCode" className="text-gray-700 font-medium">
+              <Label htmlFor="institutionCode" className="text-gray-300 font-medium">
                 Institution Code
               </Label>
               <div className="relative">
@@ -242,7 +251,7 @@ function RegisterForm() {
                   onChange={(e) =>
                     setFormData({ ...formData, institutionCode: e.target.value.toUpperCase() })
                   }
-                  className={`pl-10 h-12 text-base border-gray-300 focus:border-violet-500 focus:ring-violet-500 ${isCodeLocked ? 'bg-gray-100 cursor-not-allowed text-gray-500' : ''}`}
+                  className={`pl-10 h-12 text-base border border-white/10 bg-white/5 text-white placeholder-gray-500 hover:bg-white/[0.08] focus:border-violet-500 focus:ring-violet-500/30 transition ${isCodeLocked ? 'bg-gray-100 cursor-not-allowed text-gray-500' : ''}`}
                   required
                   disabled={isLoading || isCodeLocked}
                   readOnly={isCodeLocked}
@@ -250,19 +259,21 @@ function RegisterForm() {
               </div>
             </div>
 
+            {/* Section Header: Role */}
+            <div className="pt-2 text-xs font-semibold uppercase tracking-widest text-violet-500">Role</div>
             {/* Role Selection */}
             <div className="space-y-3">
-              <Label className="text-gray-700 font-medium">Select Your Role</Label>
+              <Label className="text-gray-300 font-medium">Select Your Role</Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <motion.button
                   type="button"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setFormData({ ...formData, role: 'student' })}
-                  className={`min-h-[88px] p-4 rounded-lg border-2 transition-all ${
+                  className={`min-h-[88px] p-4 rounded-lg border-2 transition-all shadow-sm hover:shadow-md ${
                     formData.role === 'student'
-                      ? 'border-violet-500 bg-violet-50'
-                      : 'border-gray-200 bg-white hover:border-gray-300'
+                      ? 'border-violet-500 bg-violet-500/10 ring-2 ring-violet-200'
+                      : 'border-white/10 bg-white/[0.03] hover:border-white/20'
                   }`}
                   disabled={isLoading}
                 >
@@ -271,8 +282,9 @@ function RegisterForm() {
                       formData.role === 'student' ? 'text-violet-600' : 'text-gray-400'
                     }`}
                   />
-                  <div className="font-semibold text-gray-900">Student</div>
+                  <div className="font-semibold text-white">Student</div>
                   <div className="text-xs text-gray-500 mt-1">Attend classes</div>
+                  <span className="inline-block mt-1 text-[10px] px-2 py-0.5 rounded-full bg-white/[0.03] text-gray-400">Recommended</span>
                 </motion.button>
 
                 <motion.button
@@ -280,10 +292,10 @@ function RegisterForm() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setFormData({ ...formData, role: 'faculty' })}
-                  className={`min-h-[88px] p-4 rounded-lg border-2 transition-all ${
+                  className={`min-h-[88px] p-4 rounded-lg border-2 transition-all shadow-sm hover:shadow-md ${
                     formData.role === 'faculty'
-                      ? 'border-violet-500 bg-violet-50'
-                      : 'border-gray-200 bg-white hover:border-gray-300'
+                      ? 'border-violet-500 bg-violet-500/10 ring-2 ring-violet-200'
+                      : 'border-white/10 bg-white/[0.03] hover:border-white/20'
                   }`}
                   disabled={isLoading}
                 >
@@ -292,7 +304,7 @@ function RegisterForm() {
                       formData.role === 'faculty' ? 'text-violet-600' : 'text-gray-400'
                     }`}
                   />
-                  <div className="font-semibold text-gray-900">Faculty</div>
+                  <div className="font-semibold text-white">Faculty</div>
                   <div className="text-xs text-gray-500 mt-1">Manage classes</div>
                 </motion.button>
               </div>
@@ -300,48 +312,54 @@ function RegisterForm() {
 
             {/* Student ID / Faculty ID based on role */}
             {formData.role === 'student' ? (
-              <div className="space-y-2">
-                <Label htmlFor="studentId" className="text-gray-700 font-medium">
-                  Student ID *
-                </Label>
-                <div className="relative">
-                  <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <Input
-                    id="studentId"
-                    type="text"
-                    placeholder="e.g., STU2024001"
-                    value={formData.studentId}
-                    onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
-                    className="pl-10 h-12 text-base border-gray-300 focus:border-violet-500 focus:ring-violet-500"
-                    required
-                    disabled={isLoading}
-                  />
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="studentId" className="text-gray-300 font-medium">
+                    Student ID *
+                  </Label>
+                  <div className="relative">
+                    <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <Input
+                      id="studentId"
+                      type="text"
+                      placeholder="e.g., STU2024001"
+                      value={formData.studentId}
+                      onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
+                      className="pl-10 h-12 text-base border border-white/10 bg-white/5 text-white placeholder-gray-500 hover:bg-white/[0.08] focus:border-violet-500 focus:ring-violet-500/30 transition"
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
                 </div>
-              </div>
+              </>
             ) : (
-              <div className="space-y-2">
-                <Label htmlFor="facultyId" className="text-gray-700 font-medium">
-                  Faculty ID *
-                </Label>
-                <div className="relative">
-                  <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <Input
-                    id="facultyId"
-                    type="text"
-                    placeholder="e.g., FAC2024001"
-                    value={formData.facultyId}
-                    onChange={(e) => setFormData({ ...formData, facultyId: e.target.value })}
-                    className="pl-10 h-12 text-base border-gray-300 focus:border-violet-500 focus:ring-violet-500"
-                    required
-                    disabled={isLoading}
-                  />
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="facultyId" className="text-gray-300 font-medium">
+                    Faculty ID *
+                  </Label>
+                  <div className="relative">
+                    <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <Input
+                      id="facultyId"
+                      type="text"
+                      placeholder="e.g., FAC2024001"
+                      value={formData.facultyId}
+                      onChange={(e) => setFormData({ ...formData, facultyId: e.target.value })}
+                      className="pl-10 h-12 text-base border border-white/10 bg-white/5 text-white placeholder-gray-500 hover:bg-white/[0.08] focus:border-violet-500 focus:ring-violet-500/30 transition"
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
                 </div>
-              </div>
+              </>
             )}
 
+            {/* Section Header: Academic Details */}
+            <div className="pt-2 text-xs font-semibold uppercase tracking-widest text-violet-500">Academic Details</div>
             {/* Department */}
             <div className="space-y-2">
-              <Label htmlFor="department" className="text-gray-700 font-medium">
+              <Label htmlFor="department" className="text-gray-300 font-medium">
                 Department *
               </Label>
               <div className="relative">
@@ -352,7 +370,7 @@ function RegisterForm() {
                   placeholder="e.g., Computer Science"
                   value={formData.department}
                   onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  className="pl-10 h-12 text-base border-gray-300 focus:border-violet-500 focus:ring-violet-500"
+                  className="pl-10 h-12 text-base border border-white/10 bg-white/5 text-white placeholder-gray-500 hover:bg-white/[0.08] focus:border-violet-500 focus:ring-violet-500/30 transition"
                   required
                   disabled={isLoading}
                 />
@@ -363,7 +381,7 @@ function RegisterForm() {
             {formData.role === 'student' && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="section" className="text-gray-700 font-medium">
+                  <Label htmlFor="section" className="text-gray-300 font-medium">
                     Section *
                   </Label>
                   <div className="relative">
@@ -374,7 +392,7 @@ function RegisterForm() {
                       placeholder="e.g., A, B, C"
                       value={formData.section}
                       onChange={(e) => setFormData({ ...formData, section: e.target.value })}
-                      className="pl-10 h-12 text-base border-gray-300 focus:border-violet-500 focus:ring-violet-500"
+                      className="pl-10 h-12 text-base border border-white/10 bg-white/5 text-white placeholder-gray-500 hover:bg-white/[0.08] focus:border-violet-500 focus:ring-violet-500/30 transition"
                       required
                       disabled={isLoading}
                     />
@@ -383,14 +401,14 @@ function RegisterForm() {
 
                 {/* Semester */}
                 <div className="space-y-2">
-                  <Label htmlFor="semester" className="text-gray-700 font-medium">
+                  <Label htmlFor="semester" className="text-gray-300 font-medium">
                     Semester *
                   </Label>
                   <select
                     id="semester"
                     value={formData.semester}
                     onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
-                    className="w-full h-12 px-4 text-base border border-gray-300 rounded-lg focus:border-violet-500 focus:ring-2 focus:ring-violet-500 focus:ring-offset-0 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full h-12 px-4 text-base border border-white/10 bg-white/5 text-white rounded-lg hover:bg-white/[0.08] focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 transition disabled:bg-gray-100 disabled:cursor-not-allowed"
                     required
                     disabled={isLoading}
                   >
@@ -408,22 +426,26 @@ function RegisterForm() {
               </>
             )}
 
+            {/* Section Header: Verification */}
+            {formData.role === 'student' && (
+              <div className="pt-2 text-xs font-semibold uppercase tracking-widest text-violet-500">Verification</div>
+            )}
             {/* Face Capture Section */}
             {formData.role === 'student' && (
-              <div className="space-y-3 pt-4 border-t border-gray-100">
-                <Label className="text-gray-700 font-medium">Face Capture (Required)</Label>
+              <div className="space-y-3 pt-4 border-t border-white/10">
+                <Label className="text-gray-300 font-medium">Face Capture (Required)</Label>
                 <div className="flex flex-col gap-4">
                   {faceImage ? (
                     <div className="relative">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={URL.createObjectURL(faceImage)} alt="Captured face" className="w-full h-auto rounded-lg shadow-sm border border-gray-200" />
+                      <img src={URL.createObjectURL(faceImage)} alt="Captured face" className="w-full h-auto rounded-lg shadow-sm border border-white/10" />
                       <Button type="button" variant="destructive" size="sm" className="absolute top-2 right-2" onClick={() => setFaceImage(null)}>
                         Remove
                       </Button>
                     </div>
                   ) : showWebcam ? (
                     <div className="space-y-4">
-                      <div className="rounded-lg overflow-hidden border border-gray-200 shadow-sm relative bg-black">
+                      <div className="rounded-lg overflow-hidden border border-white/10 shadow-sm relative bg-black">
                         <Webcam
                           audio={false}
                           ref={webcamRef}
@@ -444,11 +466,11 @@ function RegisterForm() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-3">
-                      <Button type="button" variant="outline" className="h-[88px] flex flex-col items-center justify-center gap-2" onClick={() => setShowWebcam(true)}>
+                      <Button type="button" variant="outline" className="h-[88px] flex flex-col items-center justify-center gap-2 bg-white/[0.03] hover:bg-white/[0.06] border-white/10" onClick={() => setShowWebcam(true)}>
                         <Camera className="w-6 h-6 text-violet-600" />
                         <span className="text-sm">Use Webcam</span>
                       </Button>
-                      <Label htmlFor="face-upload" className="h-[88px] flex flex-col items-center justify-center gap-2 border border-gray-200 rounded-md bg-white hover:bg-gray-50 cursor-pointer shadow-sm">
+                      <Label htmlFor="face-upload" className="h-[88px] flex flex-col items-center justify-center gap-2 border border-white/10 rounded-md bg-white/[0.03] hover:bg-white/[0.06] cursor-pointer shadow-sm">
                         <ImageIcon className="w-6 h-6 text-violet-600" />
                         <span className="text-sm font-medium">Upload Photo</span>
                         <input id="face-upload" type="file" accept="image/*" className="hidden" onChange={(e) => { 
@@ -462,50 +484,68 @@ function RegisterForm() {
               </div>
             )}
 
+            {/* Section Header: Security */}
+            <div className="pt-2 text-xs font-semibold uppercase tracking-widest text-violet-500">Security</div>
             {/* Password */}
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-gray-700 font-medium">
+              <Label htmlFor="password" className="text-gray-300 font-medium">
                 Password
               </Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="pl-10 h-12 text-base border-gray-300 focus:border-violet-500 focus:ring-violet-500"
+                  className="pl-10 pr-10 h-12 text-base border border-white/10 bg-white/5 text-white placeholder-gray-500 hover:bg-white/[0.08] focus:border-violet-500 focus:ring-violet-500/30 transition"
                   required
                   disabled={isLoading}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4"/> : <Eye className="w-4 h-4"/>}
+                </button>
               </div>
               <p className="text-xs text-gray-500">Must be at least 8 characters</p>
             </div>
 
             {/* Confirm Password */}
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-gray-700 font-medium">
+              <Label htmlFor="confirmPassword" className="text-gray-300 font-medium">
                 Confirm Password
               </Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <Input
                   id="confirmPassword"
-                  type="password"
+                  type={showConfirm ? 'text' : 'password'}
                   placeholder="••••••••"
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  className="pl-10 h-12 text-base border-gray-300 focus:border-violet-500 focus:ring-violet-500"
+                  className="pl-10 pr-10 h-12 text-base border border-white/10 bg-white/5 text-white placeholder-gray-500 hover:bg-white/[0.08] focus:border-violet-500 focus:ring-violet-500/30 transition"
                   required
                   disabled={isLoading}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
+                  tabIndex={-1}
+                >
+                  {showConfirm ? <EyeOff className="w-4 h-4"/> : <Eye className="w-4 h-4"/>}
+                </button>
               </div>
             </div>
 
             <Button
               type="submit"
-              className="w-full h-12 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
+              className="w-full h-12 bg-gradient-to-r from-violet-600 via-indigo-600 to-violet-700 hover:from-violet-700 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -522,8 +562,10 @@ function RegisterForm() {
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
+          {/* Divider above footer link */}
+          <div className="my-6 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+          <div className="text-center">
+            <p className="text-sm text-gray-400">
               Already have an account?{' '}
               <Link href="/login" className="text-violet-600 hover:text-violet-700 font-semibold">
                 Sign in

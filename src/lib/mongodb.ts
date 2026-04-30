@@ -83,9 +83,18 @@ async function ensureDatabaseIndexes() {
       (index) => index.name === 'roomNumber_1' && index.unique
     );
 
+    const legacyNameIndex = indexes.find(
+      (index) => index.name === 'name_1' && index.unique
+    );
+
     if (legacyRoomNumberIndex) {
       await classroomsCollection.dropIndex('roomNumber_1');
       console.log('[MongoDB] Dropped legacy unique index classrooms.roomNumber_1');
+    }
+
+    if (legacyNameIndex) {
+      await classroomsCollection.dropIndex('name_1');
+      console.log('[MongoDB] Dropped legacy unique index classrooms.name_1');
     }
 
     const scopedRoomIndex = indexes.find(
@@ -102,6 +111,37 @@ async function ensureDatabaseIndexes() {
   } catch (error) {
     console.warn(
       '[MongoDB] Could not verify/drop legacy classroom indexes:',
+      error instanceof Error ? error.message : 'Unknown error'
+    );
+  }
+
+  try {
+    const studentsCollection = mongoose.connection.collection('students');
+    const indexes = await studentsCollection.indexes();
+
+    const legacyRegisterNumberIndex = indexes.find(
+      (index) => index.name === 'registerNumber_1' && index.unique
+    );
+
+    if (legacyRegisterNumberIndex) {
+      await studentsCollection.dropIndex('registerNumber_1');
+      console.log('[MongoDB] Dropped legacy unique index students.registerNumber_1');
+    }
+
+    const scopedStudentIdIndex = indexes.find(
+      (index) => index.name === 'institutionId_1_studentId_1' && index.unique
+    );
+
+    if (!scopedStudentIdIndex) {
+      await studentsCollection.createIndex(
+        { institutionId: 1, studentId: 1 },
+        { unique: true, name: 'institutionId_1_studentId_1' }
+      );
+      console.log('[MongoDB] Ensured unique index students.institutionId_1_studentId_1');
+    }
+  } catch (error) {
+    console.warn(
+      '[MongoDB] Could not verify/drop legacy student indexes:',
       error instanceof Error ? error.message : 'Unknown error'
     );
   }

@@ -25,56 +25,69 @@ import {
 const plans = [
   {
     name: 'Starter',
-    price: '$79',
+    priceINR: '₹6,499',
+    priceUSD: '$79',
     period: '/month',
     description: 'For small colleges piloting AI-powered attendance.',
+    roi: 'Save 80% faculty time on attendance',
     cta: 'Start Free Trial',
     ctaHref: '/onboarding',
     highlight: false,
-    badge: null as string | null,
+    badge: 'Recommended' as string | null,
     color: 'from-white/5 to-transparent',
+    maxStudents: 500,
     features: [
       'Up to 500 students',
       'AI attendance detection',
-      'Classroom camera integration',
+      '📷 Classroom Camera Attendance',
+      '📱 Mobile Camera Attendance (photo capture)',
       'Basic analytics dashboard',
       'Email support',
     ],
   },
   {
     name: 'Growth',
-    price: '$249',
+    priceINR: '₹19,999',
+    priceUSD: '$249',
     period: '/month',
     description: 'For growing institutions with multiple departments.',
+    roi: 'Reduce manual errors by 95%',
     cta: 'Get Started',
     ctaHref: '/onboarding',
     highlight: true,
     badge: 'Most Popular' as string | null,
     color: 'from-purple-600/20 to-violet-600/10',
+    maxStudents: 5000,
     features: [
       'Up to 5,000 students',
       'Multi-department support',
       'Real-time analytics',
       'Role-based dashboards',
-      'Camera monitoring',
+      '📷 Camera monitoring',
+      '📱 Mobile Camera Attendance (real-time + auto marking)',
       'Priority support',
     ],
   },
   {
     name: 'Enterprise',
-    price: 'Custom',
+    priceINR: 'Custom',
+    priceUSD: 'Custom',
     period: '',
     description: 'For large universities and multi-campus networks.',
+    roi: 'Fully automated campus-wide attendance',
     cta: 'Contact Sales',
     ctaHref: 'mailto:sales@attendai.com',
     highlight: false,
     badge: null as string | null,
     color: 'from-blue-500/10 to-indigo-600/5',
+    maxStudents: Infinity,
     features: [
       'Unlimited students',
       'Multi-campus management',
       'Dedicated AI infrastructure',
       'SSO authentication',
+      '📷 Advanced camera monitoring',
+      '📱 Advanced Mobile Attendance (multi-device, live sync)',
       '24/7 support',
       'Custom integrations',
     ],
@@ -166,10 +179,16 @@ function UpgradeButton({ plan, cta, ctaHref, highlight }: {
   const [loading, setLoading] = useState(false);
 
   const handleClick = async () => {
-    if (ctaHref.startsWith('mailto') || ctaHref === '/onboarding') {
-      router.push(ctaHref);
+    if (ctaHref.startsWith('mailto')) {
+      window.location.href = ctaHref;
       return;
     }
+
+    if (ctaHref === '/onboarding') {
+      router.push('/onboarding');
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch('/api/upgrade', {
@@ -177,13 +196,14 @@ function UpgradeButton({ plan, cta, ctaHref, highlight }: {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ plan: plan.toLowerCase() }),
       });
-      if (res.ok) {
-        router.push('/admin/dashboard');
-      } else {
-        // Not logged in — send to onboarding
-        router.push('/onboarding');
+
+      if (!res.ok) {
+        throw new Error('Upgrade failed');
       }
-    } catch {
+
+      router.push('/admin/dashboard');
+    } catch (err) {
+      alert('Something went wrong. Please try again.');
       router.push('/onboarding');
     } finally {
       setLoading(false);
@@ -247,6 +267,16 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function PricingPage() {
+  const [showCompare, setShowCompare] = useState(false);
+
+  // Simple AI-based recommended plan logic (replace with real input later)
+  const getRecommendedPlan = () => {
+    const students = 1000; // TODO: replace with real input later
+    if (students > 2000) return 'Growth';
+    return 'Starter';
+  };
+  const recommended = getRecommendedPlan();
+
   return (
     <div className="relative min-h-screen bg-black overflow-hidden">
       <ResendNavbar />
@@ -284,7 +314,7 @@ export default function PricingPage() {
                 href="/onboarding"
                 className="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3 text-sm font-semibold text-black transition hover:bg-gray-100 active:scale-95"
               >
-                Start Free Trial
+                Start Free Trial — Setup in 5 mins
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <a
@@ -298,6 +328,20 @@ export default function PricingPage() {
             <p className="mt-5 text-xs text-gray-600">
               14-day free trial · No credit card required · Cancel anytime
             </p>
+            <p className="mt-2 text-xs text-purple-400">
+              Limited early adopter pricing for first 50 institutions
+            </p>
+          </div>
+        </section>
+
+        {/* ── Trust Signals ──────────────────────────────────────────────── */}
+        <section className="px-6 pb-16 text-center">
+          <p className="text-sm text-gray-500">Trusted by institutions</p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-6 text-gray-400 text-sm">
+            <span>Sahyadri College</span>
+            <span>VTU Institutions</span>
+            <span>20+ Campuses</span>
+            <span>10,000+ Students</span>
           </div>
         </section>
 
@@ -310,7 +354,7 @@ export default function PricingPage() {
                   key={plan.name}
                   className={[
                     'group relative flex flex-col overflow-hidden rounded-2xl border transition-all duration-300',
-                    plan.highlight
+                    (plan.highlight || plan.name === recommended)
                       ? 'border-purple-500/40 bg-gradient-to-b from-purple-950/40 to-black shadow-2xl shadow-purple-900/30 hover:shadow-purple-900/40'
                       : 'border-white/8 bg-white/[0.02] hover:border-white/15 hover:bg-white/[0.04]',
                   ].join(' ')}
@@ -319,10 +363,10 @@ export default function PricingPage() {
                   <div className={`h-px w-full bg-gradient-to-r ${plan.color}`} />
 
                   {/* Badge */}
-                  {plan.badge && (
+                  {(plan.badge || plan.name === recommended) && (
                     <div className="absolute right-5 top-5">
                       <span className="rounded-full bg-purple-500 px-2.5 py-0.5 text-[11px] font-semibold text-white">
-                        {plan.badge}
+                        {plan.badge || 'Recommended'}
                       </span>
                     </div>
                   )}
@@ -335,7 +379,7 @@ export default function PricingPage() {
                       </p>
                       <div className="flex items-end gap-1.5">
                         <span className="text-5xl font-bold tracking-tight text-white">
-                          {plan.price}
+                          {plan.priceINR}
                         </span>
                         {plan.period && (
                           <span className="mb-1.5 text-sm text-gray-500">{plan.period}</span>
@@ -344,6 +388,9 @@ export default function PricingPage() {
                       <p className="mt-3 text-sm leading-relaxed text-gray-500">
                         {plan.description}
                       </p>
+                      <p className="mt-2 text-xs font-medium text-purple-400">
+                        {plan.roi}
+                      </p>
                     </div>
 
                     {/* CTA */}
@@ -351,7 +398,7 @@ export default function PricingPage() {
                       plan={plan.name}
                       cta={plan.cta}
                       ctaHref={plan.ctaHref}
-                      highlight={plan.highlight}
+                      highlight={plan.highlight || plan.name === recommended}
                     />
 
                     {/* Divider */}
@@ -420,86 +467,115 @@ export default function PricingPage() {
           </div>
         </section>
 
-        {/* ── Feature Comparison Table ──────────────────────────────────────── */}
-        <section className="border-t border-white/5 px-6 py-28">
-          <div className="mx-auto max-w-5xl">
-            <div className="mb-16 text-center">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-purple-400">
-                Compare Plans
-              </p>
-              <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-                Everything in one view
-              </h2>
-              <p className="mt-4 text-gray-500">
-                See exactly what&apos;s included in each plan before you decide.
-              </p>
-            </div>
+        {/* ── Feature Comparison (Collapsible + Minimal) ───────────────────── */}
+        <section className="border-t border-white/5 px-6 py-20">
+          <div className="mx-auto max-w-4xl text-center">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-purple-400">
+              Compare Plans
+            </p>
+            <h2 className="text-2xl font-bold text-white">
+              Not sure which plan is right?
+            </h2>
+            <p className="mt-3 text-gray-500">
+              Quickly compare key differences before deciding.
+            </p>
 
-            <div className="overflow-x-auto rounded-2xl border border-white/8">
-              <table className="w-full min-w-[640px]">
-                {/* Column headers */}
+            <button
+              onClick={() => setShowCompare(!showCompare)}
+              className="mt-6 inline-flex items-center gap-2 text-sm text-purple-400 hover:text-purple-300"
+            >
+              {showCompare ? 'Hide comparison' : 'Compare all features'}
+              <ChevronDown
+                className={[
+                  'h-4 w-4 transition-transform',
+                  showCompare ? 'rotate-180' : ''
+                ].join(' ')}
+              />
+            </button>
+          </div>
+
+          {showCompare && (
+            <div className="mx-auto mt-12 max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.02] to-transparent shadow-lg">
+              <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-white/8">
-                    <th className="px-6 py-5 text-left text-xs font-medium text-gray-600">
-                      Feature
-                    </th>
-                    {['Starter', 'Growth', 'Enterprise'].map((col, i) => (
-                      <th key={col} className="px-4 py-5 text-center">
-                        <span
-                          className={[
-                            'text-sm font-semibold',
-                            i === 1 ? 'text-purple-400' : 'text-white',
-                          ].join(' ')}
-                        >
-                          {col}
-                        </span>
-                      </th>
-                    ))}
+                  <tr className="border-b border-white/10 bg-white/[0.02]">
+                    <th className="px-6 py-4 text-left text-xs uppercase tracking-wider text-gray-500">Feature</th>
+                    <th className="px-4 py-4 text-center text-gray-300">Starter</th>
+                    <th className="px-4 py-4 text-center text-purple-400">Growth ⭐</th>
+                    <th className="px-4 py-4 text-center text-gray-300">Enterprise</th>
                   </tr>
                 </thead>
 
                 <tbody>
-                  {tableFeatures.map((group) => (
-                    <Fragment key={group.category}>
-                      {/* Category row */}
-                      <tr key={group.category} className="border-b border-white/5 bg-white/[0.02]">
-                        <td colSpan={4} className="px-6 py-3">
-                          <div className="flex items-center gap-2">
-                            <group.icon className="h-3.5 w-3.5 text-purple-400" />
-                            <span className="text-[11px] font-semibold uppercase tracking-widest text-gray-500">
-                              {group.category}
-                            </span>
-                          </div>
-                        </td>
-                      </tr>
+                  {[
+                    {
+                      label: 'Students',
+                      icon: Users,
+                      starter: '500',
+                      growth: '5,000',
+                      enterprise: 'Unlimited',
+                    },
+                    {
+                      label: 'Analytics',
+                      icon: BarChart3,
+                      starter: 'Basic',
+                      growth: 'Real-time',
+                      enterprise: 'Advanced',
+                    },
+                    {
+                      label: 'Multi-campus',
+                      icon: Building2,
+                      starter: false,
+                      growth: false,
+                      enterprise: true,
+                    },
+                    {
+                      label: 'Support',
+                      icon: Headphones,
+                      starter: 'Email',
+                      growth: 'Priority',
+                      enterprise: '24/7',
+                    },
+                  ].map((row, i) => (
+                    <tr
+                      key={row.label}
+                      className={`
+                        border-b border-white/5
+                        ${i % 2 === 0 ? 'bg-white/[0.01]' : ''}
+                        hover:bg-white/[0.03]
+                        transition
+                      `}
+                    >
+                      <td className="px-6 py-4 text-gray-300">
+                        <div className="flex items-center gap-3">
+                          <row.icon className="h-4 w-4 text-purple-400" />
+                          <span>{row.label}</span>
+                        </div>
+                      </td>
 
-                      {/* Feature rows */}
-                      {group.rows.map((row, ri) => (
-                        <tr
-                          key={row.label}
-                          className={[
-                            'border-b border-white/5 transition-colors hover:bg-white/[0.02]',
-                            ri === group.rows.length - 1 ? 'border-white/8' : '',
-                          ].join(' ')}
-                        >
-                          <td className="px-6 py-4 text-sm text-gray-400">{row.label}</td>
-                          <td className="px-4 py-4">
-                            <TableCell value={row.starter} />
-                          </td>
-                          <td className="bg-purple-950/10 px-4 py-4">
-                            <TableCell value={row.growth} />
-                          </td>
-                          <td className="px-4 py-4">
-                            <TableCell value={row.enterprise} />
-                          </td>
-                        </tr>
-                      ))}
-                    </Fragment>
+                      <td className="px-4 py-4 text-center">
+                        <div className="inline-flex items-center justify-center rounded-full border border-white/10 px-3 py-1 text-xs text-gray-300">
+                          <TableCell value={row.starter} />
+                        </div>
+                      </td>
+
+                      <td className="px-4 py-4 text-center bg-purple-950/20">
+                        <div className="inline-flex items-center justify-center rounded-full bg-purple-500/10 px-3 py-1 text-xs text-purple-300">
+                          <TableCell value={row.growth} />
+                        </div>
+                      </td>
+
+                      <td className="px-4 py-4 text-center">
+                        <div className="inline-flex items-center justify-center rounded-full border border-white/10 px-3 py-1 text-xs text-gray-300">
+                          <TableCell value={row.enterprise} />
+                        </div>
+                      </td>
+                    </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </div>
+          )}
         </section>
 
         {/* ── FAQ ──────────────────────────────────────────────────────────── */}

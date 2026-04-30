@@ -32,22 +32,49 @@ function isStudentsManagerRole(role?: string): boolean {
   );
 }
 
+async function resolveInstitutionId(userId?: string, fallbackInstitutionId?: string): Promise<string> {
+  if (!userId) {
+    if (fallbackInstitutionId) {
+      return fallbackInstitutionId;
+    }
+    throw new Error('Missing authenticated user context');
+  }
+
+  try {
+    const authUser = await User.findById(userId).select('institutionId').lean<{ institutionId?: string }>();
+    if (authUser?.institutionId) {
+      return authUser.institutionId;
+    }
+  } catch (err) {
+    console.warn('Failed to resolve institution from user:', err);
+  }
+
+  const resolved = fallbackInstitutionId || process.env.DEFAULT_INSTITUTION_ID || 'default-institution';
+  if (!resolved) {
+    throw new Error('No valid institution context found');
+  }
+
+  return resolved;
+}
+
 // GET all students
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
     const tenant = await getTenantContext(req);
 
-    if (!tenant.userId || !tenant.institutionId || !isStudentsManagerRole(tenant.role)) {
+    if (!tenant.userId || !isStudentsManagerRole(tenant.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const institutionId = await resolveInstitutionId(tenant.userId, tenant.institutionId);
 
     const { searchParams } = new URL(req.url);
     const department = searchParams.get('department');
     const section = searchParams.get('section');
     const semester = searchParams.get('semester');
 
-    const filter: Record<string, unknown> = withInstitutionScope({}, tenant.institutionId);
+    const filter: Record<string, unknown> = withInstitutionScope({}, institutionId);
     if (department) filter.department = department;
     if (section) filter.section = section;
     if (semester) filter.semester = semester;
@@ -89,9 +116,11 @@ export async function POST(req: NextRequest) {
     await connectDB();
     const tenant = await getTenantContext(req);
 
-    if (!tenant.userId || !tenant.institutionId || !isStudentsManagerRole(tenant.role)) {
+    if (!tenant.userId || !isStudentsManagerRole(tenant.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const institutionId = await resolveInstitutionId(tenant.userId, tenant.institutionId);
 
     const body = await req.json();
     const { name, email, studentId, department, section, semester, imageUrl, password } = body;
@@ -105,15 +134,15 @@ export async function POST(req: NextRequest) {
     }
 
     // Trial limit check
-    const currentCount = await Student.countDocuments({ institutionId: tenant.institutionId });
-    const limitCheck = await checkLimit(tenant.institutionId, 'students', currentCount);
+    const currentCount = await Student.countDocuments({ institutionId });
+    const limitCheck = await checkLimit(institutionId, 'students', currentCount);
     if (!limitCheck.allowed) {
       return NextResponse.json({ error: limitCheck.message }, { status: 403 });
     }
 
     // Check if student ID already exists
     const existingStudent = await Student.findOne(
-      withInstitutionScope({ studentId }, tenant.institutionId)
+      withInstitutionScope({ studentId }, institutionId)
     );
     if (existingStudent) {
       return NextResponse.json(
@@ -124,7 +153,7 @@ export async function POST(req: NextRequest) {
 
     // Check if user with email already exists
     const existingUser = await User.findOne(
-      withInstitutionScope({ email: email.toLowerCase() }, tenant.institutionId)
+      withInstitutionScope({ email: email.toLowerCase() }, institutionId)
     );
     if (existingUser) {
       return NextResponse.json(
@@ -143,24 +172,39 @@ export async function POST(req: NextRequest) {
       email: email.toLowerCase(),
       password: hashedPassword,
       role: 'student',
-      institutionId: tenant.institutionId,
+      institutionId,
       isVerified: true, // Admin-created users are auto-verified
       imageUrl,
     });
 
     // Create student record
-    const student = await Student.create({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const studentPayload: Record<string, any> = {
       userId: user._id,
       studentId,
       department,
       section,
       semester,
-      institutionId: tenant.institutionId,
-      imageUrl,
-    });
+      institutionId,
+    };
+
+    if (imageUrl) {
+      studentPayload.imageUrl = imageUrl;
+      // Also try to generate an embedding immediately
+      try {
+        const { generateFaceEmbedding } = await import('@/services/embeddingService');
+        const embeddingResult = await generateFaceEmbedding(imageUrl);
+        studentPayload.faceEmbedding = embeddingResult.embedding;
+      } catch (embError) {
+        console.error('Failed to generate embedding during student creation:', embError);
+        // We still create the student, just without the embedding
+      }
+    }
+
+    const student = await Student.create(studentPayload);
 
     const populatedStudent = await Student.findOne(
-      withInstitutionScope({ _id: student._id }, tenant.institutionId)
+      withInstitutionScope({ _id: student._id }, institutionId)
     )
       .populate('userId', 'name email imageUrl')
       .lean<StudentLeanWithUser>();
@@ -189,9 +233,10 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error creating student:', error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error('Error creating student:', errorMsg, error);
     return NextResponse.json(
-      { error: 'Failed to create student' },
+      { success: false, error: errorMsg || 'Failed to create student', details: String(error) },
       { status: 500 }
     );
   }
@@ -203,9 +248,11 @@ export async function DELETE(req: NextRequest) {
     await connectDB();
     const tenant = await getTenantContext(req);
 
-    if (!tenant.userId || !tenant.institutionId || !isStudentsManagerRole(tenant.role)) {
+    if (!tenant.userId || !isStudentsManagerRole(tenant.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const institutionId = await resolveInstitutionId(tenant.userId, tenant.institutionId);
 
     const { searchParams } = new URL(req.url);
     const studentId = searchParams.get('id');
@@ -218,7 +265,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     const deletedStudent = await Student.findOneAndDelete(
-      withInstitutionScope({ _id: studentId }, tenant.institutionId)
+      withInstitutionScope({ _id: studentId }, institutionId)
     );
 
     if (!deletedStudent) {

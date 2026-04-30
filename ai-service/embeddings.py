@@ -47,7 +47,7 @@ class EmbeddingStore:
         """
         try:
             client = AsyncIOMotorClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
-            db = client["test"]  # Use explicit database name
+            db = client.get_default_database(default="test")
 
             # Fetch all students that have face embeddings
             cursor = db.students.find(

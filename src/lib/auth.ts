@@ -41,38 +41,66 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
+        institutionCode: { label: 'Institution Code', type: 'text' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error('Please provide email and password');
+        if (!credentials?.email || !credentials?.password || !credentials?.institutionCode) {
+          throw new Error('Please provide email, password, and institution code');
         }
 
         try {
+          console.log('\n--- NEXTAUTH AUTHORIZE ATTEMPT ---');
+          console.log('Validating credentials for:', credentials.email);
           await connectDB();
 
+          const mongoose = (await import('mongoose')).default;
+          const Institution = mongoose.models.Institution || (await import('@/models/Institution')).default;
+
+          const institutionCode = String(credentials.institutionCode).trim().toUpperCase();
+          const institution = await Institution.findOne({ code: institutionCode }).lean() as { _id: string; status?: string } | null;
+
+          if (!institution) {
+            console.error('Login failed: Invalid institution code:', institutionCode);
+            throw new Error('Invalid institution code');
+          }
+
+          if (institution.status === 'suspended') {
+            console.error('Login failed: Suspended institution:', institutionCode);
+            throw new Error('Institution is suspended. Contact platform support.');
+          }
+
+          const userEmail = (credentials.email as string).toLowerCase().trim();
+          console.log('Looking up user:', userEmail, 'in institution:', String(institution._id));
+          
           const user = await User.findOne({ 
-            email: (credentials.email as string).toLowerCase() 
+            email: userEmail,
+            institutionId: String(institution._id)
           });
 
           if (!user) {
-            throw new Error('No user found with this email');
+            console.error('Login failed: User record not found in MongoDB!');
+            throw new Error('Invalid credentials');
           }
 
+          console.log('User found! isVerified:', user.isVerified);
+
           if (!user.isVerified) {
+            console.error('Login failed: Unverified user');
             throw new Error('Please verify your email first');
           }
 
+          console.log('Verifying password with bcrypt...');
           const isPasswordValid = await bcrypt.compare(
             credentials.password as string,
             user.passwordHash || user.password || ''
           );
 
           if (!isPasswordValid) {
+            console.error('Login failed: Password mismatch');
             throw new Error('Invalid password');
           }
 
-          // NextAuth JWT encoding uses structured cloning under the hood,
-          // so values must be plain serializable primitives/arrays.
+          console.log('Login completely successful! Generating session...');
           const departmentIds = Array.isArray(user.departmentIds)
             ? user.departmentIds.map((id) => String(id))
             : [];
@@ -100,6 +128,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             image: user.imageUrl ? String(user.imageUrl) : undefined,
           };
         } catch (error) {
+          console.error('NEXTAUTH AUTHORIZE ERROR:', error);
           throw new Error((error as Error).message || 'Authentication failed');
         }
       },

@@ -96,6 +96,7 @@ function TextInput({
         className={[
           'w-full rounded-xl border border-white/10 bg-white/5 py-3 text-base text-white placeholder:text-gray-600',
           'outline-none transition focus:border-purple-500/60 focus:bg-white/8 disabled:opacity-50',
+          '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
           Icon ? 'pl-10 pr-4' : 'px-4',
         ].join(' ')}
       />
@@ -427,7 +428,12 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black px-4 py-8 sm:px-6 sm:py-12">
+    <div className="min-h-screen bg-black relative overflow-hidden px-4 py-8 sm:px-6 sm:py-12">
+      {/* Enhanced background glow */}
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(139,92,246,0.25),transparent_40%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_60%,rgba(99,102,241,0.15),transparent_40%)]" />
+      </div>
       {/* Background glow */}
       <div className="pointer-events-none fixed inset-0 flex items-start justify-center pt-0">
         <div className="h-[600px] w-[700px] rounded-full bg-purple-700/8 blur-[140px]" />
@@ -439,10 +445,10 @@ export default function OnboardingPage() {
           <Link href="/" className="mb-6 inline-block text-lg font-semibold text-white">
             AttendAI
           </Link>
-          <h1 className="text-2xl font-bold tracking-tight text-white sm:text-4xl">
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
             Set up your institution
           </h1>
-          <p className="mt-2 text-gray-500">
+          <p className="mt-2 text-gray-400">
             Complete the steps below to activate your 14-day free trial.
           </p>
         </div>
@@ -462,7 +468,7 @@ export default function OnboardingPage() {
                     )}
                     {/* Circle */}
                     <div className={[
-                      'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-semibold transition-all sm:h-9 sm:w-9',
+                      'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-semibold transition-all sm:h-10 sm:w-10 backdrop-blur-md',
                       done ? 'border-purple-500 bg-purple-500 text-white'
                         : active ? 'border-purple-500/80 bg-purple-500/20 text-purple-300'
                         : 'border-white/10 bg-white/5 text-gray-600',
@@ -483,9 +489,9 @@ export default function OnboardingPage() {
           </div>
 
           {/* Progress bar */}
-          <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-white/8">
+          <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-white/10">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-purple-600 to-violet-500 transition-all duration-500"
+              className="h-full rounded-full bg-gradient-to-r from-purple-500 via-indigo-500 to-purple-600 shadow-lg shadow-purple-500/30 transition-all duration-500"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -493,19 +499,19 @@ export default function OnboardingPage() {
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-5 sm:p-8">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-6 sm:p-10 shadow-2xl shadow-purple-500/10">
           {/* Step title */}
           <div className="mb-6 sm:mb-7">
             <p className="text-xs font-semibold uppercase tracking-widest text-purple-400">
               Step {step} of {STEPS.length}
             </p>
-            <h2 className="mt-1 text-lg sm:text-xl font-bold text-white">
+            <h2 className="mt-1 text-xl sm:text-2xl font-bold text-white">
               {step === 1 && 'Institution Information'}
               {step === 2 && 'Academic Structure'}
               {step === 3 && 'Institution Size'}
               {step === 4 && 'Admin Contact'}
             </h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-gray-400 leading-relaxed">
               {step === 1 && 'Tell us about your institution.'}
               {step === 2 && 'Describe your academic organization.'}
               {step === 3 && 'Help us understand your institution\'s scale.'}
@@ -533,7 +539,7 @@ export default function OnboardingPage() {
                 type="button"
                 onClick={back}
                 disabled={loading}
-                className="flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-gray-300 transition hover:bg-white/10 hover:text-white disabled:opacity-50"
+                className="flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-5 py-2.5 text-sm font-medium text-gray-300 transition hover:bg-white/10 hover:text-white disabled:opacity-50"
               >
                 <ArrowLeft className="h-4 w-4" /> Back
               </button>
@@ -550,7 +556,7 @@ export default function OnboardingPage() {
               <button
                 type="button"
                 onClick={next}
-                className="flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-white px-6 py-2.5 text-sm font-semibold text-black transition hover:bg-gray-100 active:scale-95"
+                className="flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-purple-500/30 hover:opacity-90 transition active:scale-95"
               >
                 Continue <ArrowRight className="h-4 w-4" />
               </button>
@@ -559,7 +565,7 @@ export default function OnboardingPage() {
                 type="button"
                 onClick={submit}
                 disabled={loading}
-                className="flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-white px-6 py-2.5 text-sm font-semibold text-black transition hover:bg-gray-100 active:scale-95 disabled:opacity-60"
+                className="flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-500 via-indigo-500 to-purple-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-purple-500/30 hover:opacity-90 transition active:scale-95 disabled:opacity-60"
               >
                 {loading ? (
                   <><Loader2 className="h-4 w-4 animate-spin" /> Setting up...</>
@@ -572,7 +578,7 @@ export default function OnboardingPage() {
         </div>
 
         {/* Footer note */}
-        <p className="mt-6 text-center text-xs text-gray-700">
+        <p className="mt-6 text-center text-xs text-gray-500">
           14-day free trial · No credit card required ·{' '}
           <Link href="/pricing" className="text-gray-500 hover:text-gray-300 transition">View pricing</Link>
         </p>

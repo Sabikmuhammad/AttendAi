@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 import { ACCESS_COOKIE_NAME } from '@/lib/auth-cookies';
 import { verifyAccessToken } from '@/lib/jwt';
 import { connectDB } from '@/lib/mongodb';
@@ -32,23 +33,72 @@ async function resolveInstitutionFromUser(userId: string): Promise<string | unde
 function normalize(value?: string | null): string | undefined {
   if (!value) return undefined;
   const v = String(value).trim();
-  return v && v !== 'undefined' && v !== 'null' ? v : undefined;
+  const defaultInstitution = process.env.DEFAULT_INSTITUTION_ID || 'default-institution';
+  return v && v !== 'undefined' && v !== 'null' && v !== 'default-institution' && v !== defaultInstitution
+    ? v
+    : undefined;
 }
+
+import { auth } from '@/lib/auth';
 
 /**
  * Resolves the tenant context for an API route request.
  *
  * Resolution order (first wins):
- *   1. JWT access token cookie (institutionId embedded at login)
- *   2. User DB lookup          (fallback for legacy tokens)
+ *   1. NextAuth session
+ *   2. NextAuth JWT cookie
+ *   3. Legacy access_token cookie
+ *   4. User DB lookup (fallback)
  */
 export async function getTenantContext(req: NextRequest): Promise<TenantContext> {
-  // ── 1. JWT cookie ─────────────────────────────────────────────────────────
-  const accessCookie = req.cookies.get(ACCESS_COOKIE_NAME)?.value;
+  const session = await auth();
 
-  if (accessCookie) {
+  if (session?.user) {
+    const jwtInstitutionId = normalize(session.user.institutionId);
+    
+    const institutionId =
+      jwtInstitutionId ||
+      (await resolveInstitutionFromUser(session.user.id)) ||
+      process.env.DEFAULT_INSTITUTION_ID;
+
+    return {
+      userId: session.user.id,
+      role: session.user.role as AppRole,
+      institutionId,
+      departmentIds: session.user.departmentIds || [],
+    };
+  }
+
+  // ── NextAuth JWT cookie fallback (when session helper cannot resolve) ───────
+  try {
+    const nextAuthToken = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    if (nextAuthToken) {
+      const tokenUserId = normalize(String(nextAuthToken.id || nextAuthToken.sub || ''));
+      const tokenInstitutionId = normalize(String(nextAuthToken.institutionId || ''));
+
+      const institutionId =
+        tokenInstitutionId ||
+        (tokenUserId ? await resolveInstitutionFromUser(tokenUserId) : undefined) ||
+        process.env.DEFAULT_INSTITUTION_ID;
+
+      return {
+        userId: tokenUserId,
+        role: normalize(String(nextAuthToken.role || '')) as AppRole | undefined,
+        institutionId,
+        departmentIds: Array.isArray(nextAuthToken.departmentIds)
+          ? nextAuthToken.departmentIds.map((id) => String(id))
+          : [],
+      };
+    }
+  } catch {
+    // Ignore token parsing failures and continue fallback chain
+  }
+
+  // ── Legacy JWT cookie fallback (for routes still using access_token flows) ──
+  const accessToken = req.cookies.get(ACCESS_COOKIE_NAME)?.value;
+  if (accessToken) {
     try {
-      const payload = await verifyAccessToken(accessCookie);
+      const payload = await verifyAccessToken(accessToken);
       const jwtInstitutionId = normalize(payload.institutionId);
 
       const institutionId =
@@ -58,16 +108,16 @@ export async function getTenantContext(req: NextRequest): Promise<TenantContext>
 
       return {
         userId: payload.sub,
-        role: payload.role as AppRole,
+        role: payload.role,
         institutionId,
         departmentIds: [],
       };
     } catch {
-      // Invalid token — fall through
+      // Invalid/expired token, fall through to anonymous context
     }
   }
 
-  // ── 2. No auth — return default anonymous context ────────────────────────
+  // ── No auth — return default anonymous context ────────────────────────
   return {
     userId: undefined,
     role: undefined,

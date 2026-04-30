@@ -7,6 +7,31 @@ import User from '@/models/User';
 import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
 import { requireTenantUser } from '@/lib/auth-guards';
 
+async function resolveInstitutionId(userId?: string, fallbackInstitutionId?: string): Promise<string> {
+  if (!userId) {
+    if (fallbackInstitutionId) {
+      return fallbackInstitutionId;
+    }
+    throw new Error('Missing authenticated user context');
+  }
+
+  try {
+    const authUser = await User.findById(userId).select('institutionId').lean<{ institutionId?: string }>();
+    if (authUser?.institutionId) {
+      return authUser.institutionId;
+    }
+  } catch (err) {
+    console.warn('Failed to resolve institution from user:', err);
+  }
+
+  const resolved = fallbackInstitutionId || process.env.DEFAULT_INSTITUTION_ID || 'default-institution';
+  if (!resolved) {
+    throw new Error('No valid institution context found');
+  }
+
+  return resolved;
+}
+
 // GET all faculty
 export async function GET(request: NextRequest) {
   try {
@@ -17,8 +42,10 @@ export async function GET(request: NextRequest) {
       return guard;
     }
 
+    const institutionId = await resolveInstitutionId(tenant.userId, tenant.institutionId);
+
     // Fetch all faculty with populated user data
-    const facultyList = await Faculty.find(withInstitutionScope({}, tenant.institutionId))
+    const facultyList = await Faculty.find(withInstitutionScope({}, institutionId))
       .populate('userId', 'name email imageUrl')
       .sort({ createdAt: -1 })
       .lean();
@@ -62,6 +89,8 @@ export async function POST(request: NextRequest) {
       return guard;
     }
 
+    const institutionId = await resolveInstitutionId(tenant.userId, tenant.institutionId);
+
     const body = await request.json();
     const { name, email, facultyId, department, imageUrl, password } = body;
 
@@ -75,7 +104,7 @@ export async function POST(request: NextRequest) {
 
     // Check if faculty ID already exists
     const existingFaculty = await Faculty.findOne(
-      withInstitutionScope({ facultyId }, tenant.institutionId)
+      withInstitutionScope({ facultyId }, institutionId)
     );
     if (existingFaculty) {
       return NextResponse.json(
@@ -86,7 +115,7 @@ export async function POST(request: NextRequest) {
 
     // Check if user with email already exists
     const existingUser = await User.findOne(
-      withInstitutionScope({ email: email.toLowerCase() }, tenant.institutionId)
+      withInstitutionScope({ email: email.toLowerCase() }, institutionId)
     );
     if (existingUser) {
       return NextResponse.json(
@@ -105,7 +134,7 @@ export async function POST(request: NextRequest) {
       email: email.toLowerCase(),
       password: hashedPassword,
       role: 'faculty',
-      institutionId: tenant.institutionId,
+      institutionId,
       isVerified: true, // Admin-created users are auto-verified
       imageUrl,
     });
@@ -115,11 +144,11 @@ export async function POST(request: NextRequest) {
       userId: user._id,
       facultyId,
       department,
-      institutionId: tenant.institutionId,
+      institutionId,
     });
 
     const populatedFaculty = await Faculty.findOne(
-      withInstitutionScope({ _id: faculty._id }, tenant.institutionId)
+      withInstitutionScope({ _id: faculty._id }, institutionId)
     )
       .populate('userId', 'name email imageUrl')
       .lean();
@@ -146,7 +175,8 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error creating faculty:', error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error('Error creating faculty:', errorMsg, error);
 
     if (
       error &&
@@ -161,7 +191,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { success: false, error: 'Failed to create faculty' },
+      { success: false, error: errorMsg || 'Failed to create faculty', details: String(error) },
       { status: 500 }
     );
   }

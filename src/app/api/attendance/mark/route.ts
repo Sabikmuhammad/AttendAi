@@ -5,7 +5,7 @@ import Attendance from '@/models/Attendance';
 import Class from '@/models/Class';
 import Student from '@/models/Student';
 import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
-import { requireServiceToken, requireTenantUser } from '@/lib/auth-guards';
+import { requireTenantUser } from '@/lib/auth-guards';
 
 /**
  * API endpoint to mark attendance for detected students
@@ -31,14 +31,6 @@ export async function POST(request: NextRequest) {
     });
     if (guard) {
       return guard;
-    }
-
-    const serviceGuard = requireServiceToken(
-      request.headers,
-      process.env.ATTENDANCE_SERVICE_TOKEN
-    );
-    if (serviceGuard) {
-      return serviceGuard;
     }
 
     // Verify class exists and is active

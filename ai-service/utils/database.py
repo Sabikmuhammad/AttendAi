@@ -18,7 +18,7 @@ logger = logging.getLogger("attendai.database")
 
 # MongoDB Configuration
 MONGODB_URI = os.getenv("MONGODB_URI")
-DATABASE_NAME = "test"  # Change to your database name if different
+DATABASE_NAME = os.getenv("DATABASE_NAME", "test")
 
 # Global database client
 _db_client: Optional[AsyncIOMotorClient] = None
@@ -37,11 +37,11 @@ async def connect_to_mongodb():
     
     try:
         _db_client = AsyncIOMotorClient(MONGODB_URI)
-        _database = _db_client[DATABASE_NAME]
+        _database = _db_client.get_default_database(default=DATABASE_NAME)
         
         # Verify connection
         await _db_client.admin.command('ping')
-        logger.info(f"✅ Connected to MongoDB: {DATABASE_NAME}")
+        logger.info(f"✅ Connected to MongoDB: {_database.name}")
         
     except ConnectionFailure as e:
         logger.error(f"❌ Failed to connect to MongoDB: {e}")
@@ -191,7 +191,8 @@ async def update_class_status(class_id: str, status: str):
 async def create_attendance_record(
     student_id: str,
     class_id: str,
-    status: str = "present"
+    status: str = "present",
+    institution_id: Optional[str] = None,
 ) -> Optional[str]:
     """
     Create an attendance record.
@@ -200,6 +201,7 @@ async def create_attendance_record(
         student_id: MongoDB _id of the student
         class_id: MongoDB _id of the class
         status: 'present', 'absent', 'late'
+        institution_id: Institution ID (required for multi-tenancy)
     
     Returns:
         Inserted document _id as string, or None if failed
@@ -211,9 +213,13 @@ async def create_attendance_record(
     attendance = db["attendances"]
     
     try:
+        # Use provided institution_id or default
+        final_institution_id = institution_id or os.getenv("DEFAULT_INSTITUTION_ID", "default-institution")
+        
         record = {
             "studentId": ObjectId(student_id),
             "classId": ObjectId(class_id),
+            "institutionId": final_institution_id,
             "status": status,
             "detectedTime": datetime.utcnow(),
             "method": "face_recognition",
@@ -221,18 +227,36 @@ async def create_attendance_record(
         }
         
         result = await attendance.insert_one(record)
-        logger.info(f"✅ Attendance recorded: Student {student_id} in Class {class_id}")
+        logger.info(
+            f"✅ Attendance recorded: Student {student_id} in Class {class_id} "
+            f"[Institution: {final_institution_id}, Status: {status}]"
+        )
         return str(result.inserted_id)
         
     except Exception as e:
-        logger.error(f"❌ Failed to create attendance record: {e}")
+        logger.error(
+            f"❌ Failed to create attendance record for Student {student_id}, "
+            f"Class {class_id}, Institution {institution_id}: {e}"
+        )
         return None
 
 
-async def check_attendance_exists(student_id: str, class_id: str) -> bool:
+async def check_attendance_exists(
+    student_id: str,
+    class_id: str,
+    institution_id: Optional[str] = None,
+) -> bool:
     """
     Check if attendance record already exists for this student in this class.
     Prevents duplicate attendance records.
+    
+    Args:
+        student_id: MongoDB _id of the student
+        class_id: MongoDB _id of the class
+        institution_id: Institution ID (required for proper scoping)
+    
+    Returns:
+        True if record exists, False otherwise
     """
     from bson import ObjectId
     
@@ -240,13 +264,30 @@ async def check_attendance_exists(student_id: str, class_id: str) -> bool:
     attendance = db["attendances"]
     
     try:
-        existing = await attendance.find_one({
+        # Use provided institution_id or default
+        final_institution_id = institution_id or os.getenv("DEFAULT_INSTITUTION_ID", "default-institution")
+        
+        query = {
             "studentId": ObjectId(student_id),
-            "classId": ObjectId(class_id)
-        })
+            "classId": ObjectId(class_id),
+            "institutionId": final_institution_id
+        }
+
+        existing = await attendance.find_one(query)
+        
+        if existing:
+            logger.debug(
+                f"Attendance exists for Student {student_id}, Class {class_id}, "
+                f"Institution {final_institution_id}"
+            )
+        
         return existing is not None
+        
     except Exception as e:
-        logger.error(f"Error checking attendance: {e}")
+        logger.error(
+            f"Error checking attendance for Student {student_id}, Class {class_id}, "
+            f"Institution {institution_id}: {e}"
+        )
         return False
 
 

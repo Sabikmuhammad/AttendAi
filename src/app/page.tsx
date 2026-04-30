@@ -9,7 +9,7 @@ import { TrustedBySection } from '@/components/landing/TrustedBySection';
 import { ProblemSection } from '@/components/landing/ProblemSection';
 import { SolutionSection } from '@/components/landing/SolutionSection';
 import { HowItWorksSection } from '@/components/landing/HowItWorksSection';
-import { ResendFeatures } from '@/components/landing/ResendFeatures';
+import { NewFeaturesSection } from '@/components/landing/NewFeaturesSection';
 import { ArchitectureSection } from '@/components/landing/ArchitectureSection';
 import { LiveDemoSection } from '@/components/landing/LiveDemoSection';
 import { BenefitsSection } from '@/components/landing/BenefitsSection';
@@ -40,7 +40,7 @@ export default function HomePage() {
         <ProblemSection />
         <SolutionSection />
         <HowItWorksSection />
-        <ResendFeatures />
+        <NewFeaturesSection/>
         <ArchitectureSection />
         <LiveDemoSection />
         <BenefitsSection />

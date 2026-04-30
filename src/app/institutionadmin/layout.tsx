@@ -1,4 +1,5 @@
 import { DashboardLayout } from '@/components/DashboardLayout';
+import { TrialBanner } from '@/components/TrialBanner';
 
 export default function InstitutionAdminLayout({
   children,
@@ -20,6 +21,7 @@ export default function InstitutionAdminLayout({
       subtitle="Tenant-scoped operations"
       sidebarTitle="Institution Console"
     >
+      <TrialBanner />
       {children}
     </DashboardLayout>
   );

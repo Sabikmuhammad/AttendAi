@@ -53,24 +53,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Prepare form data for Python service
-    const pythonFormData = new FormData();
-    pythonFormData.append('file', image);
-    
-    // Send enrolled student IDs for comparison
-    const studentIds = Array.isArray(classData.studentIds)
-      ? classData.studentIds.map((s: any) => s._id?.toString() || s.toString())
-      : [];
-    pythonFormData.append('enrolled_students', JSON.stringify(studentIds));
-
     // Call Python FastAPI service
-    // Adjust the URL based on your Python service configuration
     const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL || 'http://localhost:8000';
     
     try {
+      // Convert File to base64
+      const arrayBuffer = await image.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const base64Image = buffer.toString('base64');
+
       const response = await fetch(`${PYTHON_SERVICE_URL}/detect`, {
         method: 'POST',
-        body: pythonFormData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ image: base64Image }),
       });
 
       if (!response.ok) {

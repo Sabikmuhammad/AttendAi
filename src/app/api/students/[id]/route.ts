@@ -14,6 +14,20 @@ function isStudentsManagerRole(role?: string): boolean {
   );
 }
 
+async function resolveInstitutionId(userId?: string, fallbackInstitutionId?: string): Promise<string> {
+  if (!userId) {
+    throw new Error('Missing authenticated user context');
+  }
+
+  const authUser = await User.findById(userId).select('institutionId').lean<{ institutionId?: string }>();
+  const resolved = authUser?.institutionId || fallbackInstitutionId;
+  if (!resolved || resolved === 'default-institution' || resolved === process.env.DEFAULT_INSTITUTION_ID) {
+    throw new Error('No valid institution context found for this account');
+  }
+
+  return resolved;
+}
+
 // PATCH update student
 export async function PATCH(
   req: NextRequest,
@@ -23,16 +37,18 @@ export async function PATCH(
     await connectDB();
     const tenant = await getTenantContext(req);
 
-    if (!tenant.userId || !tenant.institutionId || !isStudentsManagerRole(tenant.role)) {
+    if (!tenant.userId || !isStudentsManagerRole(tenant.role)) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+
+    const institutionId = await resolveInstitutionId(tenant.userId, tenant.institutionId);
 
     const { id } = await params;
     const body = await req.json();
     const { name, email, registerNumber, department, imageUrl, faceEmbedding } = body;
 
     // Find the student to get the userId
-    const student = await Student.findOne(withInstitutionScope({ _id: id }, tenant.institutionId));
+    const student = await Student.findOne(withInstitutionScope({ _id: id }, institutionId));
     if (!student) {
       return NextResponse.json(
         { success: false, error: 'Student not found' },
@@ -50,7 +66,7 @@ export async function PATCH(
     if (Object.keys(studentUpdateData).length > 0) {
       studentUpdateData.updatedAt = new Date();
       await Student.findOneAndUpdate(
-        withInstitutionScope({ _id: id }, tenant.institutionId),
+        withInstitutionScope({ _id: id }, institutionId),
         { $set: studentUpdateData }
       );
     }
@@ -62,13 +78,13 @@ export async function PATCH(
 
     if (Object.keys(userUpdateData).length > 0) {
       await User.findOneAndUpdate(
-        withInstitutionScope({ _id: student.userId }, tenant.institutionId),
+        withInstitutionScope({ _id: student.userId }, institutionId),
         { $set: userUpdateData }
       );
     }
 
     // Fetch updated student with populated user data
-    const updatedStudent = await Student.findOne(withInstitutionScope({ _id: id }, tenant.institutionId))
+    const updatedStudent = await Student.findOne(withInstitutionScope({ _id: id }, institutionId))
       .populate('userId', 'name email imageUrl')
       .lean();
 
@@ -122,12 +138,14 @@ export async function GET(
     await connectDB();
     const tenant = await getTenantContext(req);
 
-    if (!tenant.userId || !tenant.institutionId || !isStudentsManagerRole(tenant.role)) {
+    if (!tenant.userId || !isStudentsManagerRole(tenant.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const institutionId = await resolveInstitutionId(tenant.userId, tenant.institutionId);
+
     const { id } = await params;
-    const student = await Student.findOne(withInstitutionScope({ _id: id }, tenant.institutionId)).lean();
+    const student = await Student.findOne(withInstitutionScope({ _id: id }, institutionId)).lean();
 
     if (!student) {
       return NextResponse.json(
@@ -155,13 +173,15 @@ export async function DELETE(
     await connectDB();
     const tenant = await getTenantContext(req);
 
-    if (!tenant.userId || !tenant.institutionId || !isStudentsManagerRole(tenant.role)) {
+    if (!tenant.userId || !isStudentsManagerRole(tenant.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const institutionId = await resolveInstitutionId(tenant.userId, tenant.institutionId);
+
     const { id } = await params;
     const deletedStudent = await Student.findOneAndDelete(
-      withInstitutionScope({ _id: id }, tenant.institutionId)
+      withInstitutionScope({ _id: id }, institutionId)
     );
 
     if (!deletedStudent) {

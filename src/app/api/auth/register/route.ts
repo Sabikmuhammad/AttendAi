@@ -127,29 +127,14 @@ export async function POST(request: NextRequest) {
           { status: 409 }
         );
       } else {
-        // User exists but not verified - delete old OTPs and send new one
-        await OTP.deleteMany(
-          withInstitutionScope({ email: email.toLowerCase() }, institutionId)
-        );
-        
-        // Generate new OTP
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        
-        // Save OTP
-        await OTP.create({
-          email: email.toLowerCase(),
-          institutionId,
-          otp,
-        });
-
-        // Send OTP email
-        await sendOTPEmail({ email, otp, name });
-
-        return NextResponse.json({
-          success: true,
-          message: 'Verification email sent. Please check your inbox.',
-          requiresVerification: true,
-        });
+        // Re-registration for unverified accounts: clear stale pending records,
+        // then continue with a fresh registration using latest submitted details.
+        await Promise.all([
+          Student.deleteMany(withInstitutionScope({ userId: existingUser._id }, institutionId)),
+          Faculty.deleteMany(withInstitutionScope({ userId: existingUser._id }, institutionId)),
+          OTP.deleteMany(withInstitutionScope({ email: email.toLowerCase() }, institutionId)),
+          User.findByIdAndDelete(existingUser._id),
+        ]);
       }
     }
 
@@ -262,6 +247,27 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Registration error:', error);
+
+    if (error?.code === 11000) {
+      if (error?.keyPattern?.registerNumber === 1) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              'Legacy database index conflict on registerNumber detected. Please retry after server restart.',
+          },
+          { status: 409 }
+        );
+      }
+
+      if (error?.keyPattern?.studentId === 1 || error?.keyPattern?.institutionId === 1) {
+        return NextResponse.json(
+          { success: false, error: 'Student ID already exists in this institution' },
+          { status: 409 }
+        );
+      }
+    }
+
     return NextResponse.json(
       { success: false, error: error.message || 'Registration failed' },
       { status: 500 }

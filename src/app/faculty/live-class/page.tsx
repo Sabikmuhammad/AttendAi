@@ -66,16 +66,12 @@ export default function FacultyLiveClassPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showOverlay, setShowOverlay] = useState(true);
-  
   const videoRef = useRef<HTMLImageElement>(null);
-  const AI_SERVICE_URL = process.env.NEXT_PUBLIC_AI_SERVICE_URL || 'http://localhost:8000';
 
-  // Fetch active/upcoming classes
   useEffect(() => {
     fetchClasses();
   }, []);
 
-  // Poll for stream stats when streaming
   useEffect(() => {
     if (streaming && selectedClass) {
       const interval = setInterval(fetchStreamStats, 3000);
@@ -89,7 +85,7 @@ export default function FacultyLiveClassPage() {
       if (response.ok) {
         const data = await response.json();
         const activeClasses = (data.classes || []).filter(
-          (c: Class) => c.status === 'waiting' || c.status === 'active'
+          (c: Class) => c.status === 'scheduled' || c.status === 'active'
         );
         setClasses(activeClasses);
       }
@@ -102,11 +98,13 @@ export default function FacultyLiveClassPage() {
     if (!selectedClass) return;
 
     try {
-      const response = await fetch(`${AI_SERVICE_URL}/stream/status/${selectedClass}`);
+      const response = await fetch(`/api/monitor/status/${selectedClass}`);
       if (response.ok) {
         const data = await response.json();
         setStreamStats(data);
         setMonitoring(data.stats?.monitoring_active || false);
+      } else {
+        setMonitoring(false);
       }
     } catch (err) {
       console.error('Failed to fetch stream stats:', err);
@@ -131,7 +129,7 @@ export default function FacultyLiveClassPage() {
     setError(null);
 
     try {
-      const response = await fetch(`${AI_SERVICE_URL}/monitor/start`, {
+      const response = await fetch('/api/monitor/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -145,9 +143,8 @@ export default function FacultyLiveClassPage() {
       if (response.ok && data.success) {
         setMonitoring(true);
         setStreaming(true);
-        // Start video stream
         if (videoRef.current) {
-          videoRef.current.src = `${AI_SERVICE_URL}/stream/video/${selectedClass}`;
+          videoRef.current.src = `/api/stream/video/${selectedClass}`;
         }
       } else {
         setError(data.detail || data.message || 'Failed to start monitoring');
@@ -165,7 +162,7 @@ export default function FacultyLiveClassPage() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${AI_SERVICE_URL}/monitor/stop`, {
+      const response = await fetch('/api/monitor/stop', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ classId: selectedClass })
@@ -189,7 +186,7 @@ export default function FacultyLiveClassPage() {
     if (selectedClass) {
       setStreaming(true);
       if (videoRef.current) {
-        videoRef.current.src = `${AI_SERVICE_URL}/stream/video/${selectedClass}`;
+        videoRef.current.src = `/api/stream/video/${selectedClass}`;
       }
     }
   };
@@ -204,7 +201,7 @@ export default function FacultyLiveClassPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800';
-      case 'waiting': return 'bg-yellow-100 text-yellow-800';
+      case 'scheduled': return 'bg-yellow-100 text-yellow-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };

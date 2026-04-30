@@ -124,9 +124,16 @@ class AttendanceMonitor:
             
             # 5. Initialize face recognition service
             embedding_store = await get_embedding_store()
+            # Ensure monitor uses the latest embeddings added after AI service startup.
+            await embedding_store.reload()
             self.face_recognizer = create_recognition_service(tolerance=0.55)
             
             logger.info(f"✅ Loaded {embedding_store.count()} student embeddings")
+            if embedding_store.count() == 0:
+                logger.warning(
+                    "⚠️ No student embeddings available. Attendance recognition will not match anyone "
+                    "until student images are uploaded and embeddings are generated."
+                )
             
             logger.info("✅ Attendance monitor initialized successfully")
             return True
@@ -269,7 +276,15 @@ class AttendanceMonitor:
         Args:
             student_ids: List of MongoDB _id strings for recognized students
         """
+        if not self.class_data:
+            logger.error("❌ Cannot record attendance: class data not loaded")
+            return
+            
         class_student_ids = [str(sid) for sid in self.class_data.get("studentIds", [])]
+        institution_id = self.class_data.get("institutionId")
+        
+        if not institution_id:
+            logger.warning("⚠️  No institutionId found in class data, using default")
         
         for student_id in student_ids:
             # Skip if already recorded
@@ -283,7 +298,11 @@ class AttendanceMonitor:
                 continue
             
             # Check if attendance already exists (database level)
-            exists = await check_attendance_exists(student_id, self.class_id)
+            exists = await check_attendance_exists(
+                student_id,
+                self.class_id,
+                institution_id=institution_id,
+            )
             
             if exists:
                 logger.debug(f"Attendance already recorded for student {student_id}")
@@ -294,12 +313,15 @@ class AttendanceMonitor:
             attendance_id = await create_attendance_record(
                 student_id=student_id,
                 class_id=self.class_id,
-                status="present"
+                status="present",
+                institution_id=institution_id,
             )
             
             if attendance_id:
                 self.recorded_students.add(student_id)
                 logger.info(f"✅ Marked student {student_id} as PRESENT")
+            else:
+                logger.error(f"❌ Failed to record attendance for student {student_id}")
     
     async def _finalize_attendance(self):
         """
@@ -307,36 +329,50 @@ class AttendanceMonitor:
         Called when monitoring stops.
         """
         if not self.class_data:
+            logger.error("❌ Cannot finalize attendance: class data not loaded")
             return
         
         logger.info("📝 Finalizing attendance - marking absent students")
         
         # Get all enrolled student IDs
         enrolled_student_ids = [str(sid) for sid in self.class_data.get("studentIds", [])]
+        institution_id = self.class_data.get("institutionId")
+        
+        if not institution_id:
+            logger.warning("⚠️  No institutionId found in class data, using default")
+        
+        logger.info(f"📊 Finalizing: {len(enrolled_student_ids)} enrolled, {len(self.recorded_students)} present")
         
         # Find students who were not marked present
         absent_count = 0
         for student_id in enrolled_student_ids:
             if student_id not in self.recorded_students:
                 # Check if already has an attendance record (might have been manually recorded)
-                already_recorded = await check_attendance_exists(student_id, self.class_id)
+                already_recorded = await check_attendance_exists(
+                    student_id,
+                    self.class_id,
+                    institution_id=institution_id,
+                )
                 
                 if not already_recorded:
                     # Mark as absent
                     attendance_id = await create_attendance_record(
                         student_id=student_id,
                         class_id=self.class_id,
-                        status="absent"
+                        status="absent",
+                        institution_id=institution_id,
                     )
                     
                     if attendance_id:
                         absent_count += 1
                         logger.info(f"❌ Marked student {student_id} as ABSENT")
+                    else:
+                        logger.error(f"❌ Failed to mark student {student_id} as ABSENT")
         
         if absent_count > 0:
-            logger.info(f"📊 Marked {absent_count} student(s) as absent")
+            logger.info(f"✅ Finalized: Marked {absent_count} student(s) as absent")
         else:
-            logger.info("✅ All enrolled students were present")
+            logger.info("✅ Finalized: All enrolled students were present or already recorded")
     
     async def stop_monitoring(self):
         """Stop the monitoring process and cleanup."""

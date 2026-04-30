@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 import { ACCESS_COOKIE_NAME } from '@/lib/auth-cookies';
 import { verifyAccessToken } from '@/lib/jwt';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  // Subdomain routing is disabled. Keep headers untouched.
   const requestHeaders = new Headers(request.headers);
 
   // ── Public routes ───────────────────────────────────────────────────────
@@ -30,11 +30,24 @@ export async function middleware(request: NextRequest) {
   }
 
   // ── Auth check ──────────────────────────────────────────────────────────
+  const nextAuthToken = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+
   const accessToken = request.cookies.get(ACCESS_COOKIE_NAME)?.value;
+  let token:
+    | {
+        role: string;
+        institutionId: string;
+      }
+    | undefined;
 
-  let token: { role: string; institutionId: string } | undefined;
+  if (nextAuthToken) {
+    token = {
+      role: String(nextAuthToken.role || ''),
+      institutionId: String(nextAuthToken.institutionId || ''),
+    };
+  }
 
-  if (accessToken) {
+  if (!token && accessToken) {
     try {
       const payload = await verifyAccessToken(accessToken);
       token = { role: payload.role, institutionId: payload.institutionId };

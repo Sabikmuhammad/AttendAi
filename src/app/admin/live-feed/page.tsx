@@ -34,8 +34,6 @@ export default function AdminLiveFeedPage() {
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
-  const AI_SERVICE_URL = process.env.NEXT_PUBLIC_AI_SERVICE_URL || 'http://localhost:8000';
-
   useEffect(() => {
     fetchActiveMonitors();
     const interval = setInterval(fetchActiveMonitors, 5000); // Update every 5 seconds
@@ -208,7 +206,7 @@ export default function AdminLiveFeedPage() {
                 {/* Video Feed Preview */}
                 <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
                   <img
-                    src={`${AI_SERVICE_URL}/stream/video/${monitor.class_id}`}
+                    src={`/api/stream/video/${monitor.class_id}`}
                     alt={`Live feed for ${monitor.course_name}`}
                     className="w-full h-full object-contain"
                   />

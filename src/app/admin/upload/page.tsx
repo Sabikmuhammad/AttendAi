@@ -10,10 +10,6 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Upload, CheckCircle, AlertCircle, Loader2, Camera } from 'lucide-react';
 
-const AI_SERVICE_URL = process.env.NEXT_PUBLIC_AI_SERVICE_URL || 'http://localhost:8000';
-const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`;
-const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'attendai-uploads';
-
 interface Student {
   _id: string;
   name: string;
@@ -22,6 +18,10 @@ interface Student {
   department: string;
   imageUrl?: string;
   faceEmbedding?: number[];
+}
+
+function hasValidEmbedding(student?: Student): boolean {
+  return Array.isArray(student?.faceEmbedding) && student.faceEmbedding.length > 0;
 }
 
 function UploadStudentPhotoContent() {
@@ -81,74 +81,23 @@ function UploadStudentPhotoContent() {
     }
   };
 
-  const uploadToCloudinary = async (file: File): Promise<string> => {
-    setProgress('Uploading image to Cloudinary...');
-    
+  const uploadViaBackend = async (studentObjectId: string, file: File) => {
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    formData.append('folder', 'attendai/students');
+    formData.append('image', file);
+    formData.append('studentObjectId', studentObjectId);
+    formData.append('generateEmbedding', 'true');
 
-    const response = await fetch(CLOUDINARY_UPLOAD_URL, {
+    const response = await fetch('/api/admin/upload-student-image', {
       method: 'POST',
       body: formData,
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to upload image to Cloudinary');
-    }
-
     const data = await response.json();
-    return data.secure_url;
-  };
-
-  const generateEmbedding = async (imageUrl: string): Promise<number[]> => {
-    setProgress('Detecting face and generating embedding...');
-
-    const response = await fetch(`${AI_SERVICE_URL}/generate-embedding`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageUrl }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to generate face embedding');
+    if (!response.ok || !data?.success) {
+      throw new Error(data?.error || data?.message || 'Failed to upload student photo');
     }
 
-    const data = await response.json();
-    
-    if (!data.success) {
-      throw new Error(data.error || 'Failed to generate embedding');
-    }
-
-    if (data.faces_detected === 0) {
-      throw new Error('No face detected in the image. Please upload a clear photo with a visible face.');
-    }
-
-    if (data.faces_detected > 1) {
-      throw new Error('Multiple faces detected. Please upload a photo with only one person.');
-    }
-
-    return data.embedding;
-  };
-
-  const updateStudentInDatabase = async (studentId: string, imageUrl: string, embedding: number[]) => {
-    setProgress('Saving to database...');
-
-    const response = await fetch(`/api/students/${studentId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        imageUrl,
-        faceEmbedding: embedding,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to update student in database');
-    }
-
-    return await response.json();
+    return data;
   };
 
   const handleUpload = async () => {
@@ -164,23 +113,14 @@ function UploadStudentPhotoContent() {
 
     setUploading(true);
     setMessage(null);
-    setProgress('Starting upload...');
+    setProgress('Uploading image and generating face embedding...');
 
     try {
-      // Step 1: Upload to Cloudinary
-      const imageUrl = await uploadToCloudinary(selectedFile);
-      console.log('Image uploaded:', imageUrl);
-
-      // Step 2: Generate face embedding
-      const embedding = await generateEmbedding(imageUrl);
-      console.log('Embedding generated:', embedding.length, 'dimensions');
-
-      // Step 3: Update student in database
-      await updateStudentInDatabase(selectedStudent, imageUrl, embedding);
+      await uploadViaBackend(selectedStudent, selectedFile);
 
       setMessage({
         type: 'success',
-        text: 'Student photo uploaded and face embedding generated successfully!',
+        text: 'Student photo uploaded successfully.',
       });
       setProgress('');
       setSelectedFile(null);
@@ -248,7 +188,7 @@ function UploadStudentPhotoContent() {
               {students.map((student) => (
                 <option key={student._id} value={student._id}>
                   {student.name} ({student.registerNumber}) - {student.department}
-                  {student.faceEmbedding ? ' ✓ Has embedding' : ''}
+                  {hasValidEmbedding(student) ? ' ✓ Has embedding' : ''}
                 </option>
               ))}
             </select>
@@ -263,7 +203,7 @@ function UploadStudentPhotoContent() {
                 <p><strong>Register Number:</strong> {selectedStudentData.registerNumber}</p>
                 <p><strong>Email:</strong> {selectedStudentData.email}</p>
                 <p><strong>Department:</strong> {selectedStudentData.department}</p>
-                {selectedStudentData.faceEmbedding && (
+                {hasValidEmbedding(selectedStudentData) && (
                   <p className="text-green-600 flex items-center gap-2 mt-2">
                     <CheckCircle className="w-4 h-4" />
                     Face embedding already exists (will be replaced)
@@ -382,13 +322,13 @@ function UploadStudentPhotoContent() {
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold text-green-600">
-              {students.filter((s) => s.faceEmbedding).length}
+              {students.filter((s) => hasValidEmbedding(s)).length}
             </div>
             <div className="text-sm text-gray-600 mt-1">With Face Data</div>
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold text-orange-600">
-              {students.filter((s) => !s.faceEmbedding).length}
+              {students.filter((s) => !hasValidEmbedding(s)).length}
             </div>
             <div className="text-sm text-gray-600 mt-1">Missing Face Data</div>
           </div>

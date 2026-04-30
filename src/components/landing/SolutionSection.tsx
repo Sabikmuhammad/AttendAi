@@ -16,25 +16,25 @@ export function SolutionSection() {
           <div className="space-y-6 sm:space-y-8">
             <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-purple-600/20 border border-purple-600/30 rounded-full text-xs sm:text-sm text-purple-400 font-medium">
               <Sparkles className="w-3 h-3 sm:w-4 sm:h-4" />
-              The Solution
+              AI-Powered Solution
             </div>
 
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white">
-              Meet AttendAI
+              Turn Any Classroom Into an
+              AI-Powered Attendance System
             </h2>
 
             <p className="text-base sm:text-lg lg:text-xl text-gray-400 leading-relaxed">
-              AttendAI uses advanced AI and computer vision technology to automatically 
-              record attendance using existing CCTV cameras. No manual intervention, 
-              no queues, no cards—just seamless, accurate attendance tracking.
+              Automatically track student attendance using classroom cameras.
+              No manual roll calls. No queues. Just accurate, real-time attendance.
             </p>
 
             <div className="space-y-3 sm:space-y-4">
               {[
-                'Automatic face detection and recognition',
-                'Works with existing CCTV infrastructure',
-                'Real-time attendance recording',
-                'No physical contact required'
+                'Detects and recognizes students in real time',
+                'Works with your existing classroom cameras',
+                'Marks attendance automatically during class',
+                'Prevents proxy and attendance fraud'
               ].map((feature, index) => (
                 <div key={index} className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-400 flex-shrink-0 mt-0.5" />
@@ -42,11 +42,17 @@ export function SolutionSection() {
                 </div>
               ))}
             </div>
+
+            <div className="pt-4">
+              <button className="px-6 py-3 bg-white text-black rounded-xl font-medium hover:bg-gray-200 transition-all">
+                Start Free Trial
+              </button>
+            </div>
           </div>
 
           {/* Right - Visual */}
           <div className="relative">
-            <div className="aspect-square rounded-2xl bg-gradient-to-br from-purple-600/20 to-blue-600/20 border border-white/10 p-6 sm:p-8 lg:p-12 flex items-center justify-center">
+            <div className="aspect-square rounded-2xl bg-gradient-to-br from-purple-600/20 to-blue-600/20 border border-white/10 p-6 sm:p-8 lg:p-12 flex items-center justify-center hover:scale-[1.02] transition-all duration-300">
               <div className="space-y-4 sm:space-y-6 w-full">
                 <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-white/5 rounded-lg border border-white/10">
                   <Video className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400 flex-shrink-0" />
@@ -77,6 +83,7 @@ export function SolutionSection() {
                   <div>
                     <div className="text-xs sm:text-sm text-white font-medium">Attendance Recorded</div>
                     <div className="text-[10px] sm:text-xs text-gray-500">Automatic</div>
+                    <div className="text-[10px] sm:text-xs text-green-400 mt-1">Rahul (CS001) ✔ Present • 98% Confidence</div>
                   </div>
                 </div>
               </div>

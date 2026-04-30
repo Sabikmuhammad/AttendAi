@@ -27,26 +27,30 @@ export function ResendHero() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-10 lg:gap-16 items-center">
           {/* Left Side - Content */}
           <div className="space-y-6 sm:space-y-8 text-center lg:text-left">
+            {/* Tagline */}
+            <p className="text-sm sm:text-base text-purple-400 font-medium tracking-wide uppercase">
+              Let AI Take Your Attendance
+            </p>
             {/* Headline */}
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white tracking-tight leading-[1.1]">
-              Attendance
+              Turn Cameras Into
               <br />
-              <span className="text-gray-400">Without</span>
+              <span className="text-gray-400">Automatic</span>
               <br />
-              Roll Calls
+              Attendance Systems
             </h1>
 
             {/* Subtext */}
-            <p className="text-base sm:text-lg lg:text-xl text-gray-400 leading-relaxed max-w-lg mx-auto lg:mx-0">
-              AttendAI uses advanced AI facial recognition and CCTV cameras to automatically 
-              detect and verify student attendance in real time.
+            <p className="text-base sm:text-lg lg:text-xl text-gray-400 leading-relaxed max-w-xl mx-auto lg:mx-0">
+              Automatically track student attendance using classroom cameras.
+              No manual roll calls. No errors. Fully automated.
             </p>
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start">
-              <Link href="/pricing" className="w-full sm:w-auto">
-                <button className="w-full group px-6 sm:px-8 py-3 sm:py-3.5 bg-white text-black font-medium rounded-lg hover:bg-gray-200 transition-all flex items-center justify-center gap-2 text-sm sm:text-base">
-                  Get Started
+              <Link href="/onboarding" className="w-full sm:w-auto">
+                <button className="w-full group px-6 sm:px-8 py-3.5 bg-white text-black font-medium rounded-xl hover:bg-gray-200 transition-all flex items-center justify-center gap-2 text-sm sm:text-base shadow-lg hover:scale-[1.02]">
+                  Start Free Trial
                   <ArrowRight 
                     size={18} 
                     className="group-hover:translate-x-1 transition-transform" 
@@ -54,29 +58,32 @@ export function ResendHero() {
                 </button>
               </Link>
               
-              <Link href="/docs" className="w-full sm:w-auto">
-                <button className="w-full px-6 sm:px-8 py-3 sm:py-3.5 bg-white/5 text-white font-medium rounded-lg hover:bg-white/10 border border-white/10 hover:border-white/20 transition-all flex items-center justify-center gap-2 text-sm sm:text-base">
-                  <FileText size={18} />
-                  Documentation
+              <Link href="/pricing" className="w-full sm:w-auto">
+                <button className="w-full px-6 sm:px-8 py-3.5 bg-white/5 text-white font-medium rounded-xl hover:bg-white/10 border border-white/10 hover:border-white/20 transition-all flex items-center justify-center gap-2 text-sm sm:text-base">
+                  View Pricing
                 </button>
               </Link>
             </div>
 
+            <p className="text-xs text-gray-500 mt-3 text-center lg:text-left">
+              No credit card required • Setup in under 2 minutes
+            </p>
+
             {/* Stats or Trust Indicators */}
-            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 sm:gap-6 lg:gap-8 pt-4">
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6 pt-6">
               <div className="text-center">
-                <div className="text-xl sm:text-2xl font-bold text-white">99.9%</div>
-                <div className="text-xs sm:text-sm text-gray-500">Accuracy</div>
+                <div className="text-2xl font-bold text-white">99.9%</div>
+                <div className="text-sm text-gray-500">Accuracy</div>
               </div>
               <div className="h-8 w-px bg-white/10" />
               <div className="text-center">
-                <div className="text-xl sm:text-2xl font-bold text-white">&lt;500ms</div>
-                <div className="text-xs sm:text-sm text-gray-500">Detection</div>
+                <div className="text-2xl font-bold text-white">&lt;500ms</div>
+                <div className="text-sm text-gray-500">Detection Speed</div>
               </div>
               <div className="h-8 w-px bg-white/10" />
               <div className="text-center">
-                <div className="text-xl sm:text-2xl font-bold text-white">24/7</div>
-                <div className="text-xs sm:text-sm text-gray-500">Monitoring</div>
+                <div className="text-2xl font-bold text-white">24/7</div>
+                <div className="text-sm text-gray-500">Live Monitoring</div>
               </div>
             </div>
           </div>

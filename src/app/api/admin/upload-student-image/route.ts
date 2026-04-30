@@ -13,10 +13,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { connectDB } from '@/lib/mongodb';
 import Student from '@/models/Student';
-import User from '@/models/User';
 import { uploadStudentImage, ImageUploadError } from '@/services/imageUploadService';
 import { generateFaceEmbedding, EmbeddingServiceError } from '@/services/embeddingService';
 import { getTenantContext, withInstitutionScope } from '@/lib/tenant';
@@ -50,47 +48,30 @@ interface UploadErrorResponse {
  */
 export async function POST(request: NextRequest) {
   try {
-    // 1. Authenticate and authorize
-    const session = await auth();
-
-    if (!session || !session.user) {
+    // 1. Authenticate and authorize (same tenant guard as other API routes)
+    const tenant = await getTenantContext(request);
+    const guard = requireTenantUser(tenant, {
+      roles: ['super_admin', 'institution_admin', 'department_admin', 'admin'],
+    });
+    if (guard) {
+      const status = guard.status;
       return NextResponse.json<UploadErrorResponse>(
         {
           success: false,
-          error: 'Unauthorized',
-          code: 'AUTH_REQUIRED',
+          error: status === 401 ? 'Unauthorized' : 'Forbidden: Admin access required',
+          code: status === 401 ? 'AUTH_REQUIRED' : 'INSUFFICIENT_PERMISSIONS',
         },
-        { status: 401 }
+        { status }
       );
     }
 
-    const institutionId =
-      (session.user as any).institutionId ||
-      process.env.DEFAULT_INSTITUTION_ID ||
-      'default-institution';
-
-    const user = await User.findOne(
-      withInstitutionScope({ _id: session.user.id }, institutionId)
-    );
-
-    if (
-      !user ||
-      !['super_admin', 'institution_admin', 'department_admin', 'admin'].includes(user.role)
-    ) {
-      return NextResponse.json<UploadErrorResponse>(
-        {
-          success: false,
-          error: 'Forbidden: Admin access required',
-          code: 'INSUFFICIENT_PERMISSIONS',
-        },
-        { status: 403 }
-      );
-    }
+    const institutionId = tenant.institutionId || process.env.DEFAULT_INSTITUTION_ID || 'default-institution';
 
     // 2. Parse multipart form data
     const formData = await request.formData();
     const file = formData.get('image') as File | null;
     const studentId = formData.get('studentId') as string | null;
+    const studentObjectId = formData.get('studentObjectId') as string | null;
     const generateEmbedding = formData.get('generateEmbedding') === 'true';
 
     if (!file) {
@@ -104,11 +85,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!studentId) {
+    if (!studentId && !studentObjectId) {
       return NextResponse.json<UploadErrorResponse>(
         {
           success: false,
-          error: 'Student ID is required',
+          error: 'Student identifier is required',
           code: 'MISSING_STUDENT_ID',
         },
         { status: 400 }
@@ -118,16 +99,18 @@ export async function POST(request: NextRequest) {
     // 3. Connect to database
     await connectDB();
 
-    // 4. Verify student exists
-    const student = await Student.findOne(
-      withInstitutionScope({ studentId }, institutionId)
-    );
+    // 4. Verify student exists (supports either DB _id or studentId)
+    const studentLookup = studentObjectId
+      ? withInstitutionScope({ _id: studentObjectId }, institutionId)
+      : withInstitutionScope({ studentId }, institutionId);
+
+    const student = await Student.findOne(studentLookup);
 
     if (!student) {
       return NextResponse.json<UploadErrorResponse>(
         {
           success: false,
-          error: `Student with ID ${studentId} not found`,
+          error: `Student not found`,
           code: 'STUDENT_NOT_FOUND',
         },
         { status: 404 }
@@ -135,11 +118,11 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. Upload image to Cloudinary
-    console.log(`📤 Uploading image for student ${studentId}...`);
+    console.log(`📤 Uploading image for student ${student.studentId}...`);
     
     let uploadResult;
     try {
-      uploadResult = await uploadStudentImage(file, studentId);
+      uploadResult = await uploadStudentImage(file, student.studentId);
     } catch (error) {
       if (error instanceof ImageUploadError) {
         return NextResponse.json<UploadErrorResponse>(
@@ -161,7 +144,7 @@ export async function POST(request: NextRequest) {
     let embeddingGenerated = false;
 
     if (generateEmbedding) {
-      console.log(`🤖 Generating face embedding for student ${studentId}...`);
+      console.log(`🤖 Generating face embedding for student ${student.studentId}...`);
       
       try {
         const embeddingResult = await generateFaceEmbedding(uploadResult.imageUrl);

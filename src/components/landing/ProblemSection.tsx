@@ -5,23 +5,23 @@ import { Clock, Users, CreditCard, AlertCircle } from 'lucide-react';
 const problems = [
   {
     icon: Clock,
-    title: 'Manual roll calls waste time',
-    description: 'Teachers spend 10-15 minutes every class just marking attendance.'
+    title: 'Manual attendance wastes valuable class time',
+    description: 'Faculty spend up to 15 minutes per class on roll calls instead of teaching.'
   },
   {
     icon: Users,
-    title: 'Biometric systems create queues',
-    description: 'Students wait in long lines at fingerprint or iris scanners.'
+    title: 'Biometric systems create bottlenecks',
+    description: 'Students form long queues, causing delays and disrupting schedules.'
   },
   {
     icon: CreditCard,
-    title: 'RFID cards can be misused',
-    description: 'Students can proxy attendance for absent classmates.'
+    title: 'RFID and proxies lead to attendance fraud',
+    description: 'Students can easily mark attendance for others, compromising accuracy.'
   },
   {
     icon: AlertCircle,
-    title: 'Manual errors are common',
-    description: 'Human mistakes lead to incorrect attendance records.'
+    title: 'Human errors reduce data reliability',
+    description: 'Manual processes lead to inconsistent and inaccurate attendance records.'
   }
 ];
 
@@ -42,10 +42,10 @@ export function ProblemSection() {
         {/* Header */}
         <div className="text-center mb-12 sm:mb-16 lg:mb-20">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4">
-            Attendance Systems Are Broken
+            Why Traditional Attendance Systems No Longer Work
           </h2>
           <p className="text-base sm:text-lg text-gray-400 max-w-2xl mx-auto">
-            Institutions need a smarter automated solution.
+            Manual attendance methods are inefficient, error-prone, and impossible to scale.
           </p>
         </div>
 
@@ -54,9 +54,9 @@ export function ProblemSection() {
           {problems.map((problem, index) => (
             <div
               key={index}
-              className="p-6 sm:p-8 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all duration-300"
+              className="group p-6 sm:p-8 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 hover:scale-[1.02] transition-all duration-300"
             >
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-red-600/20 flex items-center justify-center mb-4 sm:mb-6">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-red-600/20 flex items-center justify-center mb-4 sm:mb-6 group-hover:scale-110 transition-transform">
                 <problem.icon className="w-5 h-5 sm:w-6 sm:h-6 text-red-400" />
               </div>
               <h3 className="text-lg sm:text-xl font-semibold text-white mb-2 sm:mb-3">
@@ -67,6 +67,14 @@ export function ProblemSection() {
               </p>
             </div>
           ))}
+        </div>
+        <div className="text-center mt-12 sm:mt-16">
+          <p className="text-lg text-gray-300 mb-4">
+            There’s a better way.
+          </p>
+          <p className="text-sm text-gray-500">
+            AttendAI replaces outdated systems with fully automated AI-powered attendance.
+          </p>
         </div>
       </div>
     </section>

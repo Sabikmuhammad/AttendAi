@@ -144,12 +144,11 @@ function VerifyOTPContent() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-50 relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-20 right-20 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
-        <div className="absolute bottom-20 left-20 w-72 h-72 bg-violet-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
-        <div className="absolute top-1/2 left-1/2 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+    <div className="min-h-screen flex items-center justify-center p-8 bg-black relative overflow-hidden">
+      {/* Premium radial glow background */}
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(139,92,246,0.25),transparent_40%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_60%,rgba(99,102,241,0.15),transparent_40%)]" />
       </div>
 
       <motion.div
@@ -158,7 +157,7 @@ function VerifyOTPContent() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md relative z-10"
       >
-        <Card className="p-8 shadow-2xl border-0 bg-white/80 backdrop-blur-xl">
+        <Card className="p-8 shadow-2xl shadow-purple-500/10 border border-white/10 bg-white/[0.04] backdrop-blur-xl rounded-2xl">
           <div className="text-center mb-8">
             <motion.div
               initial={{ scale: 0 }}
@@ -168,11 +167,11 @@ function VerifyOTPContent() {
             >
               <Mail className="w-8 h-8 text-white" />
             </motion.div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Verify Your Email</h2>
-            <p className="text-gray-600">
+            <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">Verify Your Email</h2>
+            <p className="text-gray-400">
               Enter the 6-digit code sent to
               <br />
-              <span className="font-semibold text-violet-600">{email}</span>
+              <span className="font-semibold text-purple-400">{email}</span>
             </p>
           </div>
 
@@ -180,10 +179,10 @@ function VerifyOTPContent() {
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start"
+              className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start"
             >
-              <XCircle className="w-5 h-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-600">{error}</p>
+              <XCircle className="w-5 h-5 text-red-400 mr-2 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-400">{error}</p>
             </motion.div>
           )}
 
@@ -191,10 +190,10 @@ function VerifyOTPContent() {
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start"
+              className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-lg flex items-start"
             >
-              <CheckCircle2 className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-green-600">{success}</p>
+              <CheckCircle2 className="w-5 h-5 text-green-400 mr-2 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-green-400">{success}</p>
             </motion.div>
           )}
 
@@ -217,18 +216,18 @@ function VerifyOTPContent() {
                   initial={{ opacity: 0, scale: 0.5 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: index * 0.1 }}
-                  className="w-14 h-14 text-center text-2xl font-bold border-2 border-gray-300 rounded-lg focus:border-violet-500 focus:ring-2 focus:ring-violet-200 focus:outline-none transition-all"
+                  className="w-14 h-14 text-center text-2xl font-bold border border-white/10 bg-white/5 text-white rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all hover:bg-white/[0.08]"
                   disabled={isLoading}
                 />
               ))}
             </div>
 
             {/* Timer */}
-            <div className="flex items-center justify-center text-sm text-gray-600 mb-6">
+            <div className="flex items-center justify-center text-sm text-gray-400 mb-6">
               <Clock className="w-4 h-4 mr-2" />
               <span>
                 Code expires in{' '}
-                <span className={`font-semibold ${timeLeft < 60 ? 'text-red-600' : 'text-violet-600'}`}>
+                <span className={`font-semibold ${timeLeft < 60 ? 'text-red-400' : 'text-purple-400'}`}>
                   {formatTime(timeLeft)}
                 </span>
               </span>
@@ -236,7 +235,7 @@ function VerifyOTPContent() {
 
             <Button
               onClick={handleVerify}
-              className="w-full h-12 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
+              className="w-full h-12 bg-gradient-to-r from-purple-500 via-indigo-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
               disabled={isLoading || otp.join('').length !== 6}
             >
               {isLoading ? (
@@ -252,11 +251,11 @@ function VerifyOTPContent() {
 
           {/* Resend */}
           <div className="text-center">
-            <p className="text-sm text-gray-600 mb-2">Didn&apos;t receive the code?</p>
+            <p className="text-sm text-gray-400 mb-2">Didn&apos;t receive the code?</p>
             <button
               onClick={handleResend}
               disabled={isResending || timeLeft <= 0}
-              className="text-violet-600 hover:text-violet-700 font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="text-purple-400 hover:text-purple-500 font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isResending ? 'Sending...' : 'Resend Code'}
             </button>
@@ -264,7 +263,7 @@ function VerifyOTPContent() {
         </Card>
 
         <div className="text-center mt-6">
-          <Link href="/login" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+          <Link href="/login" className="text-sm text-gray-400 hover:text-white transition-colors">
             ← Back to login
           </Link>
         </div>
