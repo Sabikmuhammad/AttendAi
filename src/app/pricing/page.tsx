@@ -94,6 +94,7 @@ const plans = [
   },
 ];
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const tableFeatures = [
   {
     category: 'Core',
@@ -202,7 +203,8 @@ function UpgradeButton({ plan, cta, ctaHref, highlight }: {
       }
 
       router.push('/admin/dashboard');
-    } catch (err) {
+    } catch (err: unknown) {
+      console.error('Upgrade error:', err);
       alert('Something went wrong. Please try again.');
       router.push('/onboarding');
     } finally {
